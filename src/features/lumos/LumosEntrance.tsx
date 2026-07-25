@@ -21,10 +21,11 @@
  *   - 退出后 phase = closed，无残留 fixed overlay
  */
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { UseLumosRitualReturn } from "./hooks/useLumosRitual";
 import AwakeningSequence from "./ritual/AwakeningSequence";
 import AncientSpellBook from "./spellbook/AncientSpellBook";
+import BookTransition from "./spellbook/BookTransition";
 import SnapeWhisper from "@/features/snape/SnapeWhisper";
 import { SNAPE_REACTIONS } from "@/core/snape/reactions";
 import { magicEvents, MAGIC_EVENTS } from "@/features/magic/MagicEvents";
@@ -112,20 +113,36 @@ export default function LumosEntrance({
 
   // Phase 19.1：打开书本时播放 book_open 音效。
   //   包装 openBook，避免修改 useLumosRitual 状态机。
+  //   Phase 19.2：同时捕获书本屏幕坐标，触发 BookTransition 电影转场。
+  const bookWrapperRef = useRef<HTMLDivElement>(null);
+  const [bookRect, setBookRect] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
   const handleOpenBook = () => {
     sfxManager.play("book_open");
+    // 捕获书本屏幕坐标（用于 BookTransition 镜头推近锚点）
+    const el = bookWrapperRef.current;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setBookRect({
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+      });
+    }
     openBook();
   };
 
-  // Phase 17.1-E：点击书本封面 → 渐进式过渡 → today's lesson
-  // 书本放大淡出 + 黑色背景淡出 + 首页淡入，三者同步进行（1.6s）
-  useEffect(() => {
-    if (!bookOpen) return;
-    const timer = setTimeout(() => {
-      closeRitual();
-    }, 1400); // 与书本淡出动画同步，到 1.4s 时整体已几乎透明，切换无突兀感
-    return () => clearTimeout(timer);
-  }, [bookOpen, closeRitual]);
+  // Phase 19.2：BookTransition 转场完成 → closeRitual（替代旧 1.4s timer）
+  //   useLumosRitual 状态机不变，仅延后 closeRitual 调用时机
+  const handleTransitionComplete = () => {
+    closeRitual();
+  };
 
   return (
     <>
@@ -242,14 +259,14 @@ export default function LumosEntrance({
             key="lumos-scene"
             className="fixed inset-0 z-[999]"
             initial={{ opacity: 0 }}
-            animate={bookOpen ? { opacity: 0 } : { opacity: 1 }}
+            animate={{ opacity: 1 }}
             exit={{
               opacity: 0,
               filter: "blur(8px)",
               scale: 0.98,
             }}
             transition={{
-              duration: 1.6,
+              duration: 0.6,
               ease: "easeOut",
             }}
             style={{
@@ -277,6 +294,7 @@ export default function LumosEntrance({
                 )}
                 {/* 魔法书 + 背后发光层 */}
                 <motion.div
+                  ref={bookWrapperRef}
                   className="relative flex max-h-[92vh] w-full justify-center px-4 mt-10"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -300,26 +318,26 @@ export default function LumosEntrance({
                     }
                     transition={
                       bookOpen
-                        ? { duration: 1.6, ease: "easeOut" }
+                        ? { duration: 0.3, ease: "easeOut" }
                         : { duration: 4, repeat: Infinity, ease: "easeInOut" }
                     }
                   />
-                  {/* 书本本体：点击后整体放大 + 淡出，进入 today's lesson */}
-                  <motion.div
-                    animate={
-                      bookOpen
-                        ? { scale: 1.15, opacity: 0, filter: "blur(4px)" }
-                        : { scale: 1, opacity: 1, filter: "blur(0px)" }
-                    }
-                    transition={{ duration: 1.6, ease: [0.4, 0, 0.2, 1] }}
-                  >
-                    <AncientSpellBook
-                      isOpen={bookOpen}
-                      onOpenClick={handleOpenBook}
-                      className="relative max-h-[92vh]"
-                    />
-                  </motion.div>
+                  {/* 书本本体（Phase 19.2：打开动画由 BookTransition 接管，此处不再 scale/blur） */}
+                  <AncientSpellBook
+                    isOpen={bookOpen}
+                    onOpenClick={handleOpenBook}
+                    className="relative max-h-[92vh]"
+                  />
                 </motion.div>
+
+                {/* === Phase 19.2: BookTransition 电影级转场 overlay === */}
+                {/*   z=1200 高于 Lumos 场景，覆盖书本放大过程，转场完成后调用 closeRitual */}
+                {bookOpen && (
+                  <BookTransition
+                    bookRect={bookRect}
+                    onComplete={handleTransitionComplete}
+                  />
+                )}
               </div>
             )}
           </motion.div>
