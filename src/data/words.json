@@ -1,0 +1,272 @@
+[
+  {
+    "id": "w001",
+    "word": "Inevitable",
+    "phonetic": "/ɪnˈevɪtəbl/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "不可避免的；宿命般的",
+    "exampleEn": "Some consequences are inevitable, written long before the deed.",
+    "exampleZh": "有些后果是宿命般的必然，远在行事之前便已写定。"
+  },
+  {
+    "id": "w002",
+    "word": "Solitude",
+    "phonetic": "/ˈsɒlɪtjuːd/",
+    "partOfSpeech": "noun",
+    "meaningZh": "独处；寂寥",
+    "exampleEn": "In the basement study, he kept his solitude like a sacred flame.",
+    "exampleZh": "在地下书房里，他把独处当作一团圣火般守护着。"
+  },
+  {
+    "id": "w003",
+    "word": "Luminous",
+    "phonetic": "/ˈluːmɪnəs/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "发光的；清亮的",
+    "exampleEn": "A single luminous page guided his hand through the dark.",
+    "exampleZh": "一张清亮发光的书页，引着他的手穿过黑暗。"
+  },
+  {
+    "id": "w004",
+    "word": "Vigil",
+    "phonetic": "/ˈvɪdʒɪl/",
+    "partOfSpeech": "noun",
+    "meaningZh": "守夜；不眠的注视",
+    "exampleEn": "She kept her silent vigil until the candle burned to its end.",
+    "exampleZh": "她静默地守夜，直到蜡烛燃尽最后一寸。"
+  },
+  {
+    "id": "w005",
+    "word": "Eloquent",
+    "phonetic": "/ˈeləkwənt/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "雄辩的；意蕴深远的",
+    "exampleEn": "His silence was more eloquent than any eulogy.",
+    "exampleZh": "他的沉默比任何悼词都更意蕴深远。"
+  },
+  {
+    "id": "w006",
+    "word": "Lament",
+    "phonetic": "/ləˈment/",
+    "partOfSpeech": "noun",
+    "meaningZh": "挽歌；哀悼",
+    "exampleEn": "The wind outside carried the lament of an unnamed grief.",
+    "exampleZh": "窗外的风携来一段无名哀痛的挽歌。"
+  },
+  {
+    "id": "w007",
+    "word": "Resolute",
+    "phonetic": "/ˈrezəluːt/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "坚定的；毅然决然的",
+    "exampleEn": "Resolute, he closed the book and chose the harder door.",
+    "exampleZh": "他毅然合上书，推开了那扇更艰难的门。"
+  },
+  {
+    "id": "w008",
+    "word": "Whisper",
+    "phonetic": "/ˈwɪspə/",
+    "partOfSpeech": "noun",
+    "meaningZh": "低语；私语",
+    "exampleEn": "A whisper escaped the pages, as though the book itself remembered.",
+    "exampleZh": "一缕低语从书页间逸出，仿佛那本书自己记得往事。"
+  },
+  {
+    "id": "w009",
+    "word": "Mournful",
+    "phonetic": "/ˈmɔːnfl/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "哀伤的；凄凉的",
+    "exampleEn": "The bell tolled a mournful note across the empty courtyard.",
+    "exampleZh": "钟声在空旷的庭院中敲出凄凉的一声。"
+  },
+  {
+    "id": "w010",
+    "word": "Tether",
+    "phonetic": "/ˈteðə/",
+    "partOfSpeech": "noun",
+    "meaningZh": "拴绳；羁绊",
+    "exampleEn": "He had severed every tether that bound him to the past.",
+    "exampleZh": "他斩断了所有将自己系于过去的羁绊。"
+  },
+  {
+    "id": "w011",
+    "word": "Quietus",
+    "phonetic": "/kwaɪˈiːtəs/",
+    "partOfSpeech": "noun",
+    "meaningZh": "安息；终结；了结",
+    "exampleEn": "At last the storm found its quietus beneath the snow.",
+    "exampleZh": "风暴终于在积雪之下寻得它的了结。"
+  },
+  {
+    "id": "w012",
+    "word": "Audacity",
+    "phonetic": "/ɔːˈdæsəti/",
+    "partOfSpeech": "noun",
+    "meaningZh": "胆识；孤勇",
+    "exampleEn": "It takes a certain audacity to remain kind in a cruel world.",
+    "exampleZh": "在冷酷的世间保持温柔，需要一种孤勇。"
+  },
+  {
+    "id": "w013",
+    "word": "Venerate",
+    "phonetic": "/ˈvenəreɪt/",
+    "partOfSpeech": "verb",
+    "meaningZh": "崇敬；敬奉",
+    "exampleEn": "They venerate the old master's notebooks as if they were relics.",
+    "exampleZh": "他们将老大师的笔记当作圣物般崇敬。"
+  },
+  {
+    "id": "w014",
+    "word": "Penumbra",
+    "phonetic": "/pɪˈnʌmbrə/",
+    "partOfSpeech": "noun",
+    "meaningZh": "半影；边缘地带",
+    "exampleEn": "Truth often lingers in the penumbra, never quite in the light.",
+    "exampleZh": "真相常徘徊在半影之中，从不愿完全走入光里。"
+  },
+  {
+    "id": "w015",
+    "word": "Austere",
+    "phonetic": "/ɒˈstɪə/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "肃穆的；克制的",
+    "exampleEn": "His chamber was austere, yet every object held a quiet weight.",
+    "exampleZh": "他的房间肃穆清简，却每件物事都暗藏分量。"
+  },
+  {
+    "id": "w016",
+    "word": "Endure",
+    "phonetic": "/ɪnˈdjʊə/",
+    "partOfSpeech": "verb",
+    "meaningZh": "忍受；持久存留",
+    "exampleEn": "Some words endure long after the voice that spoke them is gone.",
+    "exampleZh": "有些字在说话的声音消散之后，依然长存。"
+  },
+  {
+    "id": "w017",
+    "word": "Lattice",
+    "phonetic": "/ˈlætɪs/",
+    "partOfSpeech": "noun",
+    "meaningZh": "格子；交错之网",
+    "exampleEn": "Rain traced a lattice of silver down the darkened pane.",
+    "exampleZh": "雨水在幽暗的窗玻璃上勾出一道银色的格子网。"
+  },
+  {
+    "id": "w018",
+    "word": "Subdued",
+    "phonetic": "/səbˈdjuːd/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "压抑的；收敛的",
+    "exampleEn": "Her voice was subdued, yet it held the room entirely.",
+    "exampleZh": "她的声音收敛低沉，却攫住了整间屋子。"
+  },
+  {
+    "id": "w019",
+    "word": "Reverie",
+    "phonetic": "/ˈrevəri/",
+    "partOfSpeech": "noun",
+    "meaningZh": "遐想；出神",
+    "exampleEn": "He slipped into a quiet reverie as the logs turned to embers.",
+    "exampleZh": "柴薪化作余烬时，他陷入了一段安静的遐想。"
+  },
+  {
+    "id": "w020",
+    "word": "Candid",
+    "phonetic": "/ˈkændɪd/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "坦率的；直言的",
+    "exampleEn": "Her candid answer spared neither him nor herself.",
+    "exampleZh": "她坦率的回答既未饶过他，也未饶过她自己。"
+  },
+  {
+    "id": "w021",
+    "word": "Oblivion",
+    "phonetic": "/əˈblɪviən/",
+    "partOfSpeech": "noun",
+    "meaningZh": "湮没；遗忘之境",
+    "exampleEn": "He chose silence over oblivion, and silence kept his name.",
+    "exampleZh": "他宁取沉默也不愿湮没，而沉默保住了他的名字。"
+  },
+  {
+    "id": "w022",
+    "word": "Tremor",
+    "phonetic": "/ˈtremə/",
+    "partOfSpeech": "noun",
+    "meaningZh": "颤动；震颤",
+    "exampleEn": "A faint tremor crossed his hand before he signed the page.",
+    "exampleZh": "落款之前，他的手掠过一丝几不可察的颤动。"
+  },
+  {
+    "id": "w023",
+    "word": "Ardent",
+    "phonetic": "/ˈɑːdnt/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "炽热的；深切的",
+    "exampleEn": "Beneath his calm lay an ardent and unspoken loyalty.",
+    "exampleZh": "他沉静的外表之下，藏着炽烈而未言明的忠诚。"
+  },
+  {
+    "id": "w024",
+    "word": "Solace",
+    "phonetic": "/ˈsɒləs/",
+    "partOfSpeech": "noun",
+    "meaningZh": "慰藉；安抚",
+    "exampleEn": "She found solace in the rows of forgotten books.",
+    "exampleZh": "她在一排排被遗忘的书间寻得慰藉。"
+  },
+  {
+    "id": "w025",
+    "word": "Frail",
+    "phonetic": "/freɪl/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "脆弱的；易碎的",
+    "exampleEn": "Frail as the page seemed, it bore a heavy truth.",
+    "exampleZh": "纸页看似脆弱，却承载着一份沉重的真相。"
+  },
+  {
+    "id": "w026",
+    "word": "Inscribe",
+    "phonetic": "/ɪnˈskraɪb/",
+    "partOfSpeech": "verb",
+    "meaningZh": "铭刻；题写",
+    "exampleEn": "He inscribed a single line on the final page, and closed the book.",
+    "exampleZh": "他在末页上只题写了一行字，便合上了书。"
+  },
+  {
+    "id": "w027",
+    "word": "Wistful",
+    "phonetic": "/ˈwɪstfl/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "惆怅的；眷念的",
+    "exampleEn": "She cast a wistful glance at the door that would not open again.",
+    "exampleZh": "她朝那扇再不会开启的门投去一缕惆怅的目光。"
+  },
+  {
+    "id": "w028",
+    "word": "Mantle",
+    "phonetic": "/ˈmæntl/",
+    "partOfSpeech": "noun",
+    "meaningZh": "披风；衣钵；责任",
+    "exampleEn": "He took up the mantle no one else would carry, and asked for nothing.",
+    "exampleZh": "他承担起无人愿背负的衣钵，且无所求。"
+  },
+  {
+    "id": "w029",
+    "word": "Somber",
+    "phonetic": "/ˈsɒmbə/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "阴沉的；肃然的",
+    "exampleEn": "A somber hush fell over the study as the clock struck twelve.",
+    "exampleZh": "钟敲十二下时，书房笼罩在一片肃然的寂静中。"
+  },
+  {
+    "id": "w030",
+    "word": "Eternal",
+    "phonetic": "/ɪˈtɜːnl/",
+    "partOfSpeech": "adjective",
+    "meaningZh": "永恒的；不灭的",
+    "exampleEn": "Some choices carry an eternal weight the world will never see.",
+    "exampleZh": "有些选择承载着世人永不会见的永恒分量。"
+  }
+]

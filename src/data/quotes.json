@@ -1,0 +1,270 @@
+[
+  {
+    "id": "q001",
+    "quoteEn": "Sometimes the smallest choices reveal the greatest courage.",
+    "quoteZh": "有时最微小的选择，揭示了最伟大的勇气。",
+    "vocabulary": [
+      { "word": "reveal", "meaning": "v. 揭示；显露" },
+      { "word": "courage", "meaning": "n. 勇气" }
+    ]
+  },
+  {
+    "id": "q002",
+    "quoteEn": "Solitude is the soil in which wisdom quietly grows.",
+    "quoteZh": "独处，是智慧悄然生长的土壤。",
+    "vocabulary": [
+      { "word": "solitude", "meaning": "n. 独处" },
+      { "word": "soil", "meaning": "n. 土壤" }
+    ]
+  },
+  {
+    "id": "q003",
+    "quoteEn": "A steady candle outlasts the loudest thunder.",
+    "quoteZh": "一支沉稳的蜡烛，比最响的雷鸣更长久。",
+    "vocabulary": [
+      { "word": "steady", "meaning": "adj. 稳定的" },
+      { "word": "outlast", "meaning": "v. 比…持久" }
+    ]
+  },
+  {
+    "id": "q004",
+    "quoteEn": "What is spoken in shadow often carries the truest light.",
+    "quoteZh": "在阴影中说出的，往往承载着最真实的光。",
+    "vocabulary": [
+      { "word": "shadow", "meaning": "n. 阴影" },
+      { "word": "carry", "meaning": "v. 承载" }
+    ]
+  },
+  {
+    "id": "q005",
+    "quoteEn": "Patience is the quiet art of those who outlive storms.",
+    "quoteZh": "耐心，是熬过风暴之人安静的技艺。",
+    "vocabulary": [
+      { "word": "patience", "meaning": "n. 耐心" },
+      { "word": "outlive", "meaning": "v. 比…活得久" }
+    ]
+  },
+  {
+    "id": "q006",
+    "quoteEn": "The deepest loyalties are written in silence.",
+    "quoteZh": "最深的忠诚，写在沉默里。",
+    "vocabulary": [
+      { "word": "loyalty", "meaning": "n. 忠诚" },
+      { "word": "silence", "meaning": "n. 沉默" }
+    ]
+  },
+  {
+    "id": "q007",
+    "quoteEn": "Courage is not the absence of fear, but the choice above it.",
+    "quoteZh": "勇气并非没有恐惧，而是在恐惧之上仍作选择。",
+    "vocabulary": [
+      { "word": "absence", "meaning": "n. 缺席；没有" },
+      { "word": "fear", "meaning": "n. 恐惧" }
+    ]
+  },
+  {
+    "id": "q008",
+    "quoteEn": "An old book remembers what the world forgets.",
+    "quoteZh": "一本旧书，记得世界已遗忘的事。",
+    "vocabulary": [
+      { "word": "remember", "meaning": "v. 记得" },
+      { "word": "forget", "meaning": "v. 遗忘" }
+    ]
+  },
+  {
+    "id": "q009",
+    "quoteEn": "To be misunderstood is sometimes the price of integrity.",
+    "quoteZh": "被误解，有时是正直的代价。",
+    "vocabulary": [
+      { "word": "misunderstood", "meaning": "adj. 被误解的" },
+      { "word": "integrity", "meaning": "n. 正直" }
+    ]
+  },
+  {
+    "id": "q010",
+    "quoteEn": "A single word, well chosen, can outlive an empire.",
+    "quoteZh": "一个选得妥帖的字，可以比帝国更长久。",
+    "vocabulary": [
+      { "word": "well-chosen", "meaning": "adj. 精心挑选的" },
+      { "word": "empire", "meaning": "n. 帝国" }
+    ]
+  },
+  {
+    "id": "q011",
+    "quoteEn": "The night is long, but the candle is patient.",
+    "quoteZh": "夜很长，但蜡烛有耐心。",
+    "vocabulary": [
+      { "word": "patient", "meaning": "adj. 有耐心的" }
+    ]
+  },
+  {
+    "id": "q012",
+    "quoteEn": "He who waits in shadow learns what light conceals.",
+    "quoteZh": "在阴影中守候的人，懂得光所遮掩的事。",
+    "vocabulary": [
+      { "word": "conceal", "meaning": "v. 隐藏" },
+      { "word": "shadow", "meaning": "n. 阴影" }
+    ]
+  },
+  {
+    "id": "q013",
+    "quoteEn": "Knowledge wears no crown, yet it rules the patient mind.",
+    "quoteZh": "知识不戴王冠，却统治着耐心的心。",
+    "vocabulary": [
+      { "word": "crown", "meaning": "n. 王冠" },
+      { "word": "patient", "meaning": "adj. 有耐心的" }
+    ]
+  },
+  {
+    "id": "q014",
+    "quoteEn": "A quiet hour with words is worth a year of noise.",
+    "quoteZh": "与文字共度的一小时安静，胜过一年的喧嚣。",
+    "vocabulary": [
+      { "word": "worth", "meaning": "adj. 值得" },
+      { "word": "noise", "meaning": "n. 喧嚣" }
+    ]
+  },
+  {
+    "id": "q015",
+    "quoteEn": "Some truths arrive only when the room grows still.",
+    "quoteZh": "有些真相，只在房间安静下来时才到来。",
+    "vocabulary": [
+      { "word": "truth", "meaning": "n. 真相" },
+      { "word": "still", "meaning": "adj. 寂静的" }
+    ]
+  },
+  {
+    "id": "q016",
+    "quoteEn": "Loyalty asks for no witness, and that is its proof.",
+    "quoteZh": "忠诚不求见证，而这正是它的明证。",
+    "vocabulary": [
+      { "word": "witness", "meaning": "n. 见证" },
+      { "word": "proof", "meaning": "n. 证明" }
+    ]
+  },
+  {
+    "id": "q017",
+    "quoteEn": "The wise speak little, and let the candle speak for them.",
+    "quoteZh": "智者寡言，让蜡烛替他们说话。",
+    "vocabulary": [
+      { "word": "wise", "meaning": "adj. 智慧的" },
+      { "word": "speak", "meaning": "v. 说话" }
+    ]
+  },
+  {
+    "id": "q018",
+    "quoteEn": "Memory is a candle that flickers, but does not die.",
+    "quoteZh": "记忆是一支摇曳却不熄灭的蜡烛。",
+    "vocabulary": [
+      { "word": "memory", "meaning": "n. 记忆" },
+      { "word": "flicker", "meaning": "v. 摇曳" }
+    ]
+  },
+  {
+    "id": "q019",
+    "quoteEn": "Words are the quiet inheritance of those who listen.",
+    "quoteZh": "文字，是倾听者安静的遗产。",
+    "vocabulary": [
+      { "word": "inheritance", "meaning": "n. 遗产" },
+      { "word": "listen", "meaning": "v. 倾听" }
+    ]
+  },
+  {
+    "id": "q020",
+    "quoteEn": "The hardest choices are made in the softest silence.",
+    "quoteZh": "最艰难的选择，常在最温柔的沉默中作出。",
+    "vocabulary": [
+      { "word": "hardest", "meaning": "adj. 最艰难的" },
+      { "word": "silence", "meaning": "n. 沉默" }
+    ]
+  },
+  {
+    "id": "q021",
+    "quoteEn": "Every page turned is a small act of defiance.",
+    "quoteZh": "翻过的每一页，都是一次微小的反抗。",
+    "vocabulary": [
+      { "word": "defiance", "meaning": "n. 反抗" },
+      { "word": "act", "meaning": "n. 行为" }
+    ]
+  },
+  {
+    "id": "q022",
+    "quoteEn": "He who guards the library guards more than books.",
+    "quoteZh": "守护图书馆的人，守护的不只是书。",
+    "vocabulary": [
+      { "word": "guard", "meaning": "v. 守护" },
+      { "word": "library", "meaning": "n. 图书馆" }
+    ]
+  },
+  {
+    "id": "q023",
+    "quoteEn": "Grace is what remains when the storm has spoken.",
+    "quoteZh": "风暴说完之后，留下的便是优雅。",
+    "vocabulary": [
+      { "word": "grace", "meaning": "n. 优雅" },
+      { "word": "storm", "meaning": "n. 风暴" }
+    ]
+  },
+  {
+    "id": "q024",
+    "quoteEn": "A measured word is the weapon of a patient mind.",
+    "quoteZh": "斟酌过的字，是耐心之心的武器。",
+    "vocabulary": [
+      { "word": "measured", "meaning": "adj. 慎重的" },
+      { "word": "weapon", "meaning": "n. 武器" }
+    ]
+  },
+  {
+    "id": "q025",
+    "quoteEn": "To endure is, in itself, a quiet kind of victory.",
+    "quoteZh": "能够忍受，本身就是一种安静的胜利。",
+    "vocabulary": [
+      { "word": "endure", "meaning": "v. 忍受" },
+      { "word": "victory", "meaning": "n. 胜利" }
+    ]
+  },
+  {
+    "id": "q026",
+    "quoteEn": "The candle does not ask to be seen; it only burns.",
+    "quoteZh": "蜡烛不求被看见，它只是燃烧。",
+    "vocabulary": [
+      { "word": "burn", "meaning": "v. 燃烧" }
+    ]
+  },
+  {
+    "id": "q027",
+    "quoteEn": "In silence, the soul gathers its slow evidence.",
+    "quoteZh": "在沉默中，灵魂缓缓收集它的证据。",
+    "vocabulary": [
+      { "word": "soul", "meaning": "n. 灵魂" },
+      { "word": "evidence", "meaning": "n. 证据" }
+    ]
+  },
+  {
+    "id": "q028",
+    "quoteEn": "Old words keep their weight long after the speakers are gone.",
+    "quoteZh": "旧字在说话者离去之后，仍保有它的分量。",
+    "vocabulary": [
+      { "word": "weight", "meaning": "n. 分量" },
+      { "word": "gone", "meaning": "adj. 离去的" }
+    ]
+  },
+  {
+    "id": "q029",
+    "quoteEn": "A closed door is not always a refusal; sometimes it is a vigil.",
+    "quoteZh": "关上的门不一定是拒绝，有时是守夜。",
+    "vocabulary": [
+      { "word": "refusal", "meaning": "n. 拒绝" },
+      { "word": "vigil", "meaning": "n. 守夜" }
+    ]
+  },
+  {
+    "id": "q030",
+    "quoteEn": "The deepest ink flows from the stillest hand.",
+    "quoteZh": "最深的墨，从最稳的手流出。",
+    "vocabulary": [
+      { "word": "ink", "meaning": "n. 墨水" },
+      { "word": "still", "meaning": "adj. 稳的" }
+    ]
+  }
+]

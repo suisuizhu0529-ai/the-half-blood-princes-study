@@ -1,0 +1,299 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   The Half-Blood Prince's Study · 全局样式
+   ============================================================ */
+
+:root {
+  /* 色板 */
+  --color-stone: #0b0b0f;
+  --color-shadow: #24152f;
+  --color-parchment: #d8c7a5;
+  --color-parchment-dim: #b8a47e;
+  --color-gold: #c9a227;
+  --color-gold-soft: #a8841d;
+  --color-ember: #e0a458;
+  --color-ink: #1a1410;
+
+  /* 字体 */
+  --font-display: "Cinzel", serif;
+  --font-serif: "Cormorant Garamond", "Noto Serif SC", serif;
+  --font-ui: "Libre Baskerville", "Noto Serif SC", serif;
+  --font-zh: "Noto Serif SC", serif;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-stone);
+  color: var(--color-parchment);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* 全局背景：石墙渐变（在 AmbientLayer 之前作为兜底） */
+#root {
+  background:
+    radial-gradient(ellipse at 18% 22%, rgba(36, 21, 47, 0.6) 0%, transparent 55%),
+    radial-gradient(ellipse at 82% 78%, rgba(36, 21, 47, 0.5) 0%, transparent 60%),
+    linear-gradient(160deg, #0b0b0f 0%, #11091a 50%, #0b0b0f 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* 选区与滚动条 */
+::selection {
+  background: rgba(201, 162, 39, 0.32);
+  color: #fff7e0;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0b0f;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #3a2a4a, #1a1320);
+  border-radius: 8px;
+  border: 2px solid #0b0b0f;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4a3a5a, #24152f);
+}
+
+/* ============================================================
+   Keyframes
+   ============================================================ */
+
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scaleY(1) scaleX(1) skewX(0deg);
+    opacity: 1;
+  }
+  20% {
+    transform: scaleY(1.04) scaleX(0.97) skewX(-1deg);
+    opacity: 0.92;
+  }
+  40% {
+    transform: scaleY(0.96) scaleX(1.02) skewX(1.5deg);
+    opacity: 1;
+  }
+  60% {
+    transform: scaleY(1.02) scaleX(0.98) skewX(-0.5deg);
+    opacity: 0.95;
+  }
+  80% {
+    transform: scaleY(0.98) scaleX(1.01) skewX(1deg);
+    opacity: 1;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.82;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes drift {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-2%, -1%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes rain-fall {
+  0% {
+    transform: translateY(-120%);
+  }
+  100% {
+    transform: translateY(120vh);
+  }
+}
+
+@keyframes pulse-gold {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(201, 162, 39, 0), 0 0 24px rgba(201, 162, 39, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.25), 0 0 36px rgba(201, 162, 39, 0.4);
+  }
+}
+
+@keyframes ember-rise {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-80px) translateX(var(--drift, 6px)) scale(0.4);
+    opacity: 0;
+  }
+}
+
+/* Phase 7D-4：档案室浮尘 —— 极慢、极克制 */
+@keyframes dust-drift {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate(var(--dx, 14px), var(--dy, -22px));
+    opacity: 0.7;
+  }
+  85% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(calc(var(--dx, 14px) * 1.6), calc(var(--dy, -22px) * 1.8));
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   工具类（组件级）
+   ============================================================ */
+
+@layer components {
+  /* 金色细描边按钮 */
+  .btn-quill {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 font-ui text-sm tracking-wider text-parchment border border-gold/60 rounded-sm bg-ink/30 backdrop-blur-sm transition-all duration-300;
+    letter-spacing: 0.18em;
+  }
+  .btn-quill:hover {
+    @apply border-gold text-parchment bg-gold/15;
+    box-shadow: 0 0 18px rgba(201, 162, 39, 0.25);
+  }
+  .btn-quill:active {
+    transform: translateY(1px);
+  }
+  .btn-quill:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* 金色细线 */
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(201, 162, 39, 0.55) 50%,
+      transparent 100%
+    );
+  }
+
+  /* 羊皮纸卡片底纹 */
+  .parchment-surface {
+    background:
+      radial-gradient(ellipse at 30% 18%, rgba(255, 240, 200, 0.22) 0%, transparent 55%),
+      radial-gradient(ellipse at 72% 82%, rgba(120, 90, 50, 0.14) 0%, transparent 60%),
+      linear-gradient(135deg, #d8c7a5 0%, #c9b68e 48%, #d4c19a 100%);
+    color: var(--color-ink);
+  }
+
+  /* 暗角 */
+  .vignette {
+    background: radial-gradient(
+      ellipse at center,
+      transparent 35%,
+      rgba(0, 0, 0, 0.55) 80%,
+      rgba(0, 0, 0, 0.85) 100%
+    );
+  }
+
+  /* 颗粒 noise 叠层（SVG turbulence） */
+  .noise-layer {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.78 0 0 0 0 0.65 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 220px 220px;
+    mix-blend-mode: overlay;
+    opacity: 0.18;
+  }
+
+  /* Phase 7D-4：档案室环境层 —— 深黑绿色石墙 + 蜡烛光晕 */
+  .archive-ambient {
+    background:
+      /* 顶部蜡烛暖光（地下室反光） */
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(212, 168, 67, 0.12) 0%, transparent 70%),
+      /* 左上角微弱烛光 */
+      radial-gradient(ellipse 30% 25% at 12% 8%, rgba(212, 168, 67, 0.08) 0%, transparent 60%),
+      /* 右下角微弱烛光 */
+      radial-gradient(ellipse 28% 22% at 88% 92%, rgba(212, 168, 67, 0.06) 0%, transparent 60%),
+      /* 石墙层次：深黑绿 → 深紫黑 */
+      linear-gradient(165deg, #0a0d0c 0%, #0c1014 35%, #11091a 70%, #0a0d0c 100%);
+  }
+
+  /* Phase 7D-4：档案室浮尘 —— 极克制 */
+  .dust-mote {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: rgba(212, 168, 67, 0.45);
+    box-shadow: 0 0 3px rgba(212, 168, 67, 0.3);
+    pointer-events: none;
+    animation: dust-drift var(--dur, 18s) ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  /* Phase 7D-4：分类标题装饰线 —— 金色短分割线 */
+  .archive-rule {
+    height: 1px;
+    width: 48px;
+    background: linear-gradient(
+      90deg,
+      rgba(201, 162, 39, 0.7) 0%,
+      rgba(201, 162, 39, 0.2) 100%
+    );
+  }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
