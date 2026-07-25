@@ -4,6 +4,7 @@ import AmbientLayer from "./AmbientLayer";
 import NavBar from "./NavBar";
 import Entrance from "../Entrance";
 import MagicInteractionLayer from "@/features/magic/MagicInteractionLayer";
+import GestureFxLayer from "@/features/magic/GestureFxLayer";
 import { useStudyAtmosphere } from "@/hooks/useStudyAtmosphere";
 import { useSettings } from "@/hooks/useSettings";
 import { useAmbientAudio } from "@/hooks/useAmbientAudio";
@@ -49,6 +50,9 @@ export default function AppLayout() {
 
       {/* 全局魔法交互层（入场后启用，桌面端） */}
       {entered && <MagicInteractionLayer />}
+
+      {/* Phase 19.1：手势视觉反馈层（订阅 MAGIC_CIRCLE / DEATHLY_HALLOWS_GESTURE） */}
+      {entered && <GestureFxLayer />}
     </div>
   );
 }

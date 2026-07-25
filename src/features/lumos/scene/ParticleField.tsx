@@ -34,6 +34,8 @@ export interface ParticleFieldProps {
   enabled?: boolean;
   /** 自定义 className */
   className?: string;
+  /** 自定义 z-index，默认 50。在 Lumos 全屏场景（z=999）内使用时建议设为 40-60 */
+  zIndex?: number;
 }
 
 interface DustParticle {
@@ -70,10 +72,17 @@ export default function ParticleField({
   tone = "warm",
   enabled = true,
   className,
+  zIndex = 50,
 }: ParticleFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<DustParticle[]>([]);
   const rafRef = useRef<number | null>(null);
+  // Phase 19.1 验收修复：用 ref 保存 opacity，避免 opacity 变化时 useEffect 重跑
+  //   原 bug：AwakeningSequence 每 100ms 更新 elapsed → re-render → particleOpacity 变化
+  //          → useEffect deps 含 opacity → 重跑 → 重新初始化所有粒子 → 粒子位置瞬移闪烁
+  //   修复：opacity 通过 ref 传递给 render 函数，不进入 useEffect deps
+  const opacityRef = useRef(opacity);
+  opacityRef.current = opacity;
 
   useEffect(() => {
     if (!enabled) return;
@@ -122,6 +131,9 @@ export default function ParticleField({
 
       ctx.clearRect(0, 0, w, h);
 
+      // 从 ref 读取最新 opacity（不触发 useEffect 重跑）
+      const currentOpacity = opacityRef.current;
+
       particlesRef.current.forEach((p, i) => {
         // 更新位置
         p.x += p.vx;
@@ -139,7 +151,7 @@ export default function ParticleField({
 
         // 闪烁后的透明度
         const twinkle = (Math.sin(p.twinklePhase) + 1) / 2; // 0-1
-        const finalOpacity = p.baseOpacity * (0.4 + twinkle * 0.6) * opacity;
+        const finalOpacity = p.baseOpacity * (0.4 + twinkle * 0.6) * currentOpacity;
 
         // 绘制（带微弱光晕）
         const color = colors[i % colors.length];
@@ -170,7 +182,7 @@ export default function ParticleField({
         rafRef.current = null;
       }
     };
-  }, [count, opacity, tone, enabled]);
+  }, [count, tone, enabled]);
 
   if (!enabled) return null;
 
@@ -183,7 +195,7 @@ export default function ParticleField({
         position: "fixed",
         inset: 0,
         pointerEvents: "none",
-        zIndex: 50,
+        zIndex,
         mixBlendMode: "screen",
       }}
     />

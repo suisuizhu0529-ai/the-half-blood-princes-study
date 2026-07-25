@@ -29,6 +29,7 @@ import SnapeWhisper from "@/features/snape/SnapeWhisper";
 import { SNAPE_REACTIONS } from "@/core/snape/reactions";
 import { magicEvents, MAGIC_EVENTS } from "@/features/magic/MagicEvents";
 import { magicContext } from "@/features/magic/MagicContext";
+import { sfxManager } from "@/services/audio/sfxManager";
 import type { LessonCardProps } from "@/components/study/LessonCard";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -98,14 +99,23 @@ export default function LumosEntrance({
   //   仅 lumos 场景 + idle 阶段才激活仪式。
   //   study 场景（首页单词页）禁止响应，避免重复唤醒。
   //   spellbook 场景预留翻页交互（TODO）。
+  // Phase 19.1：触发时播放 wand_swish 音效。
   useEffect(() => {
     const unsub = magicEvents.on(MAGIC_EVENTS.MAGIC_SWEEP, () => {
       if (magicContext.getActiveScene() !== "lumos") return;
       if (phase !== "idle") return;
+      sfxManager.play("wand_swish");
       activateLumos();
     });
     return unsub;
   }, [phase, activateLumos]);
+
+  // Phase 19.1：打开书本时播放 book_open 音效。
+  //   包装 openBook，避免修改 useLumosRitual 状态机。
+  const handleOpenBook = () => {
+    sfxManager.play("book_open");
+    openBook();
+  };
 
   // Phase 17.1-E：点击书本封面 → 渐进式过渡 → today's lesson
   // 书本放大淡出 + 黑色背景淡出 + 首页淡入，三者同步进行（1.6s）
@@ -270,7 +280,7 @@ export default function LumosEntrance({
                   className="relative flex max-h-[92vh] w-full justify-center px-4 mt-10"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!bookOpen) openBook();
+                    if (!bookOpen) handleOpenBook();
                   }}
                   initial={{ opacity: 0, scale: 0.85, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -305,7 +315,7 @@ export default function LumosEntrance({
                   >
                     <AncientSpellBook
                       isOpen={bookOpen}
-                      onOpenClick={openBook}
+                      onOpenClick={handleOpenBook}
                       className="relative max-h-[92vh]"
                     />
                   </motion.div>

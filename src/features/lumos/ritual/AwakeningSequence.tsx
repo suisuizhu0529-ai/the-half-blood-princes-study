@@ -3,19 +3,19 @@
  *
  * 定位：Lumos 仪式 Phase B（环境苏醒 + 魔杖挥光，4s）。
  *
- * 时间轴（4s）：
+ * 时间轴（4s，Phase 19.1 调整 rune 阶段至 0.5s）：
  *   0.0-0.8s  纯黑（/100，盖住首页 fade out）
  *   0.0-0.5s  魔杖挥光弧
  *   0.8-2.0s  黑暗变薄 + 月光增强
  *   0.8s      中央蜡烛 stage 0 → 1（gathering）
- *   1.1s      中央蜡烛 stage 1 → 2（rune）
- *   1.4s      中央蜡烛 stage 2 → 3（ignition）+ 左蜡烛开始 gathering
- *   1.7s      中央蜡烛 stage 3 → 4（illumination）+ 左蜡烛 rune
- *   2.0s      中央蜡烛 stage 4 → 5（completed）+ 左蜡烛 ignition + 右蜡烛 gathering
- *   2.3s      左蜡烛 illumination + 右蜡烛 rune
- *   2.6s      左蜡烛 completed + 右蜡烛 ignition
- *   2.9s      右蜡烛 illumination
- *   3.2s      右蜡烛 completed
+ *   1.1s      中央蜡烛 stage 1 → 2（rune，持续 0.5s）
+ *   1.6s      中央蜡烛 stage 2 → 3（ignition）+ 左蜡烛开始 gathering
+ *   1.9s      中央蜡烛 stage 3 → 4（illumination）+ 左蜡烛 rune
+ *   2.2s      中央蜡烛 stage 4 → 5（completed）+ 左蜡烛 ignition + 右蜡烛 gathering
+ *   2.5s      左蜡烛 illumination + 右蜡烛 rune
+ *   2.8s      左蜡烛 completed + 右蜡烛 ignition
+ *   3.1s      右蜡烛 illumination
+ *   3.4s      右蜡烛 completed
  *   2.5-4.0s  书本浮现光晕（金色，引导视觉）
  *   4.0s      完成 → 调用 onComplete（进入 research 阶段）
  *
@@ -26,10 +26,12 @@
  *   - 蜡烛位置：中央 z 高 + scale 大，左右 z 低 + scale 小（前/后景关系）
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import CandleRitual, { type CandleStage } from "./CandleRitual";
+import ParticleField from "../scene/ParticleField";
+import { sfxManager } from "@/services/audio/sfxManager";
 
 interface AwakeningSequenceProps {
   /** 苏醒完成回调 */
@@ -43,36 +45,36 @@ interface CandleTimeline {
   stages: { stage: CandleStage; at: number }[];
 }
 
-/** 中央蜡烛时间轴（0.8s 起开始 gathering，每 0.3s 推进一阶段） */
+/** 中央蜡烛时间轴（Phase 19.1：rune 阶段持续 0.5s，让用户能看清符文） */
 const centerTimeline: CandleTimeline = {
   stages: [
     { stage: 1, at: 0.8 }, // gathering
-    { stage: 2, at: 1.1 }, // rune
-    { stage: 3, at: 1.4 }, // ignition
-    { stage: 4, at: 1.7 }, // illumination
-    { stage: 5, at: 2.0 }, // completed
+    { stage: 2, at: 1.1 }, // rune（持续到 1.6s = 0.5s）
+    { stage: 3, at: 1.6 }, // ignition
+    { stage: 4, at: 1.9 }, // illumination
+    { stage: 5, at: 2.2 }, // completed
   ],
 };
 
-/** 左蜡烛时间轴（1.4s 起开始 gathering，跟随中央） */
+/** 左蜡烛时间轴（跟随中央，rune 持续 0.5s） */
 const leftTimeline: CandleTimeline = {
   stages: [
     { stage: 1, at: 1.4 },
     { stage: 2, at: 1.7 },
-    { stage: 3, at: 2.0 },
-    { stage: 4, at: 2.3 },
-    { stage: 5, at: 2.6 },
+    { stage: 3, at: 2.2 },
+    { stage: 4, at: 2.5 },
+    { stage: 5, at: 2.8 },
   ],
 };
 
-/** 右蜡烛时间轴（2.0s 起开始 gathering，最后点燃） */
+/** 右蜡烛时间轴（最后点燃，rune 持续 0.5s） */
 const rightTimeline: CandleTimeline = {
   stages: [
     { stage: 1, at: 2.0 },
     { stage: 2, at: 2.3 },
-    { stage: 3, at: 2.6 },
-    { stage: 4, at: 2.9 },
-    { stage: 5, at: 3.2 },
+    { stage: 3, at: 2.8 },
+    { stage: 4, at: 3.1 },
+    { stage: 5, at: 3.4 },
   ],
 };
 
@@ -90,6 +92,13 @@ export default function AwakeningSequence({
   className,
 }: AwakeningSequenceProps) {
   const [elapsed, setElapsed] = useState(0);
+
+  // Phase 19.1：记录上次各蜡烛阶段，用于检测 stage 3（ignition）切换并播放音效
+  const prevStagesRef = useRef<{ center: CandleStage; left: CandleStage; right: CandleStage }>({
+    center: 0,
+    left: 0,
+    right: 0,
+  });
 
   // 时间驱动：每 100ms 更新 elapsed
   useEffect(() => {
@@ -115,6 +124,28 @@ export default function AwakeningSequence({
   const leftStage = getStageAt(leftTimeline, elapsed);
   const rightStage = getStageAt(rightTimeline, elapsed);
 
+  // Phase 19.1：检测 ignition 阶段切换，播放 candle_ignite 音效
+  useEffect(() => {
+    const prev = prevStagesRef.current;
+    if (centerStage === 3 && prev.center < 3) sfxManager.play("candle_ignite");
+    if (leftStage === 3 && prev.left < 3) sfxManager.play("candle_ignite");
+    if (rightStage === 3 && prev.right < 3) sfxManager.play("candle_ignite");
+    prevStagesRef.current = { center: centerStage, left: leftStage, right: rightStage };
+  }, [centerStage, leftStage, rightStage]);
+
+  // Phase 19.1：粒子层 opacity 随蜡烛点燃进度增强
+  //   0 - 0.8s   : 0    （纯黑阶段，无粒子）
+  //   0.8 - 1.6s : 0.3  （中央蜡烛 gathering→rune，少量粒子）
+  //   1.6 - 2.2s : 0.6  （中央蜡烛点燃，粒子增强）
+  //   2.2 - 3.4s : 0.9  （左右蜡烛陆续点燃，粒子最浓）
+  //   3.4 - 4.0s : 1.0  （全部点燃，氛围稳定）
+  const particleOpacity =
+    elapsed < 0.8 ? 0
+    : elapsed < 1.6 ? 0.3
+    : elapsed < 2.2 ? 0.6
+    : elapsed < 3.4 ? 0.9
+    : 1.0;
+
   return (
     <div className={cn("absolute inset-0 overflow-hidden", className)} aria-label="Awakening Sequence">
       {/* 黑暗叠加层（前 0.8s 纯黑，之后快速变薄让蜡烛可见） */}
@@ -134,6 +165,17 @@ export default function AwakeningSequence({
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 0, 0.8, 1] }}
         transition={{ duration: 4, times: [0, 0.15, 0.4, 1] }}
+      />
+
+      {/* Phase 19.1：粒子尘埃层（z=40，在蜡烛之上、魔杖挥光之下）
+          - 蜡烛点燃时粒子增强（暖色金尘）
+          - 用 fixed 定位覆盖整个 viewport（Lumos 场景 z=999 内部） */}
+      <ParticleField
+        count={28}
+        tone="warm"
+        opacity={particleOpacity}
+        enabled={elapsed >= 0.8}
+        zIndex={40}
       />
 
       {/* 魔杖挥光弧（0-1.2s，加长持续时间） */}
