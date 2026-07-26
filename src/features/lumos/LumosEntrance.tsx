@@ -31,6 +31,7 @@ import { SNAPE_REACTIONS } from "@/core/snape/reactions";
 import { magicEvents, MAGIC_EVENTS } from "@/features/magic/MagicEvents";
 import { magicContext } from "@/features/magic/MagicContext";
 import { sfxManager } from "@/services/audio/sfxManager";
+import { getAsset } from "./scene/assetManifest";
 import type { LessonCardProps } from "@/components/study/LessonCard";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -143,6 +144,10 @@ export default function LumosEntrance({
   const handleTransitionComplete = () => {
     closeRitual();
   };
+
+  // Phase 19.2 Round 1：查询书本素材路径，传给 BookTransition 建立视觉连续性
+  //   与 AncientSpellBook 内部 MagicObject 使用同一 assetId，确保点击前后是同一物件
+  const bookImageSrc = getAsset("spell-book-main")?.src ?? "";
 
   return (
     <>
@@ -332,9 +337,11 @@ export default function LumosEntrance({
 
                 {/* === Phase 19.2: BookTransition 电影级转场 overlay === */}
                 {/*   z=1200 高于 Lumos 场景，覆盖书本放大过程，转场完成后调用 closeRitual */}
+                {/*   Round 1：传入 bookImageSrc，渲染真实书本封面（与 AncientSpellBook 同源） */}
                 {bookOpen && (
                   <BookTransition
                     bookRect={bookRect}
+                    bookImageSrc={bookImageSrc}
                     onComplete={handleTransitionComplete}
                   />
                 )}

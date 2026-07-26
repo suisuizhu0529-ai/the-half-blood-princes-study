@@ -1,5 +1,5 @@
 /**
- * BookTransition（Phase 19.2 · 电影级书本打开转场）。
+ * BookTransition（Phase 19.2 · 电影级书本打开转场；Round 1 · 真实书本连续性）。
  *
  * 定位：
  *   点击 AncientSpellBook 后触发的沉浸式转场 overlay。
@@ -25,8 +25,18 @@
  *
  * 完成后调用 onComplete → 触发 closeRitual → StudyRoom 显示 Lesson
  *
+ * Round 1 视觉连续性修复（回应 Claude "镜头对准的内容错了"）：
+ *   - 替换 CSS placeholder（棕色色块 + 占位徽章）为真实书本图片
+ *   - 通过 bookImageSrc 接收 AncientSpellBook 使用的同一张素材
+ *   - 渲染样式与 AncientSpellBook 完全一致：
+ *       4:3 容器、cover 模式、objectPosition "center 45%"、相同 boxShadow
+ *   - 保留烫金边框暗示作为图片 overlay（连续性锚点）
+ *   - 用户感知：点击前的书本 = 转场中被放大的书本（同一物件）
+ *
  * 架构边界：
  *   - 不修改 useLumosRitual 状态机
+ *   - 不修改 AncientSpellBook 数据结构
+ *   - 不修改 assetManifest 注册逻辑
  *   - 不引入新依赖（仅 React + Framer Motion + CSS）
  *   - 通过 bookRect 接收书本屏幕坐标，实现"从书本位置展开"的镜头感
  */
@@ -42,6 +52,12 @@ export interface BookTransitionProps {
     width: number;
     height: number;
   } | null;
+  /**
+   * 真实书本封面图片路径（与 AncientSpellBook 使用同一素材）。
+   * Round 1：建立"点击前 = 转场中"的视觉连续性。
+   * 由 LumosEntrance 通过 getAsset("spell-book-main")?.src 传入。
+   */
+  bookImageSrc: string;
   /** 转场完成回调（触发 closeRitual） */
   onComplete: () => void;
 }
@@ -58,7 +74,7 @@ const PHASE_TIMINGS = {
   revealEnd: 2400,
 } as const;
 
-export default function BookTransition({ bookRect, onComplete }: BookTransitionProps) {
+export default function BookTransition({ bookRect, bookImageSrc, onComplete }: BookTransitionProps) {
   const [phase, setPhase] = useState<TransitionPhase>("lock");
 
   // 阶段推进 + 完成回调
@@ -179,6 +195,7 @@ export default function BookTransition({ bookRect, onComplete }: BookTransitionP
           />
 
           {/* === 书本镜头层（从书本位置展开） === */}
+          {/* Round 1：渲染真实书本图片，与 AncientSpellBook 视觉一致 */}
           <motion.div
             className="absolute inset-0"
             style={{
@@ -194,51 +211,41 @@ export default function BookTransition({ bookRect, onComplete }: BookTransitionP
               ease: [0.22, 1, 0.36, 1], // easeOutQuart，电影感
             }}
           >
-            {/* 书本占位视觉（闭合态皮革色块 + 烫金边框暗示） */}
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{
-                background:
-                  "radial-gradient(ellipse at center, rgba(58, 36, 24, 0.9) 0%, rgba(20, 12, 8, 1) 80%)",
-              }}
-            >
-              {/* 皮革纹理暗示（中央矩形，模拟书本封面） */}
+            {/* 真实书本封面（与 AncientSpellBook 相同样式） */}
+            <div className="absolute inset-0 flex items-center justify-center">
               <div
-                className="relative"
+                className="relative overflow-hidden"
                 style={{
                   width: "min(768px, 95vw)",
                   aspectRatio: "4 / 3",
-                  background:
-                    "linear-gradient(135deg, #3a2418 0%, #2a1810 50%, #1c100a 100%)",
                   borderRadius: "4px",
                   boxShadow:
                     "0 24px 60px rgba(0,0,0,0.8), 0 8px 24px rgba(0,0,0,0.6), inset 0 0 60px rgba(0,0,0,0.5)",
                 }}
               >
-                {/* 烫金边框暗示 */}
+                {/* 真实书本素材图片（与 AncientSpellBook 同源） */}
+                <img
+                  src={bookImageSrc}
+                  alt=""
+                  aria-hidden="true"
+                  draggable={false}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    objectPosition: "center 45%",
+                    userSelect: "none",
+                  }}
+                />
+                {/* 烫金边框暗示（连续性锚点，与 AncientSpellBook 风格一致） */}
                 <div
-                  className="absolute inset-[3%] rounded-[2px]"
+                  className="absolute inset-[3%] rounded-[2px] pointer-events-none"
                   style={{
                     border: "1px solid rgba(201, 162, 39, 0.3)",
                     boxShadow: "inset 0 0 30px rgba(201, 162, 39, 0.08)",
                   }}
                 />
-                {/* 中央徽章光点（暗示符文位置） */}
-                <motion.div
-                  className="absolute inset-0 flex items-center justify-center"
-                  animate={{ opacity: [0.3, 0.6, 0.3] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <div
-                    style={{
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      background: "radial-gradient(circle, #fa4c14 0%, transparent 70%)",
-                      boxShadow: "0 0 12px rgba(250, 76, 20, 0.6)",
-                    }}
-                  />
-                </motion.div>
               </div>
             </div>
           </motion.div>
