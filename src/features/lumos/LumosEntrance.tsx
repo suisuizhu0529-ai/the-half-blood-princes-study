@@ -46,7 +46,7 @@ interface LumosEntranceProps {
  * Lumos 仪式主入口（场景隔离版）。
  *
  * 渲染策略：
- *   - idle：首页内的小入口（Enter the Study）
+ *   - idle：首页内的小入口（魔法阵 + skip 按钮同时显示）
  *   - awakening：全屏苏醒序列 + Snape 低语
  *   - research/verification：全屏魔法书场景
  *   - closed：首页内的小入口（Cast Lumos again）
@@ -60,11 +60,10 @@ export default function LumosEntrance({
   const { phase, bookOpen, activateLumos, completeAwakening, openBook, closeRitual, resetToIdle } =
     ritual;
 
-  // Phase 19.2 Round 4：日常仪式快速进入
-  //   idle 阶段先显示 skip 按钮（3 秒窗口期）
-  //     - 3 秒内点击 → 快速进入学习
-  //     - 3 秒后未点击 → skip 淡出 + 魔法阵显现 + 魔杖互动激活
-  //   首次/后续访问都走相同窗口期，避免 localStorage 缺失导致 skip 不显示
+  // Phase 19.2 Round 5：魔法阵与 skip 按钮同时显示
+  //   - 魔法阵为主入口（挥魔杖或点击进入完整仪式）
+  //   - skip 按钮为辅（小字，位于魔法阵下方，快速进入学习）
+  //   - 两者同时出现，skip 不喧宾夺主
 
   const ritualEnterReaction = SNAPE_REACTIONS.find(
     (r) => r.moment === "ritual_enter",
@@ -75,27 +74,6 @@ export default function LumosEntrance({
   const isIdle = phase === "idle";
   const isClosed = phase === "closed";
   const isAwakening = phase === "awakening";
-
-  // skip 窗口是否已过期（3 秒内未点击 skip）
-  // false = 窗口期内，显示 skip 按钮，隐藏魔法阵
-  // true  = 窗口期外，隐藏 skip 按钮，显示魔法阵 + 启用魔杖互动
-  const [skipWindowExpired, setSkipWindowExpired] = useState(false);
-
-  // skip 窗口计时器：idle 阶段启动 3 秒倒计时
-  //   - 不依赖 hasCompletedBefore，首次/后续访问都走窗口期
-  //   - 避免因 localStorage 缺失导致 skip 按钮永不显示
-  //   - 离开 idle 时重置，下次进入重新计时
-  useEffect(() => {
-    if (!isIdle) {
-      setSkipWindowExpired(false);
-      return;
-    }
-    if (skipWindowExpired) return; // 已过期不再计时
-    const timer = window.setTimeout(() => {
-      setSkipWindowExpired(true);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [isIdle, skipWindowExpired]);
 
   // Phase 17.1-D：ESC 键退出（仅在 Lumos 激活时响应）
   useEffect(() => {
@@ -129,19 +107,15 @@ export default function LumosEntrance({
   //   study 场景（首页单词页）禁止响应，避免重复唤醒。
   //   spellbook 场景预留翻页交互（TODO）。
   // Phase 19.1：触发时播放 wand_swish 音效。
-  // Phase 19.2 Round 4：skip 窗口期门控。
-  //   - 窗口期内：魔杖挥动不触发（等用户选 skip）
-  //   - 窗口期外：魔杖挥动触发完整仪式（用户已选择仪式）
   useEffect(() => {
     const unsub = magicEvents.on(MAGIC_EVENTS.MAGIC_SWEEP, () => {
       if (magicContext.getActiveScene() !== "lumos") return;
       if (phase !== "idle") return;
-      if (!skipWindowExpired) return; // 窗口期内禁用魔杖
       sfxManager.play("wand_swish");
       activateLumos();
     });
     return unsub;
-  }, [phase, activateLumos, skipWindowExpired]);
+  }, [phase, activateLumos]);
 
   // Phase 19.1：打开书本时播放 book_open 音效。
   //   包装 openBook，避免修改 useLumosRitual 状态机。
@@ -192,116 +166,108 @@ export default function LumosEntrance({
   return (
     <>
       {/* === idle：首页内的入口 === */}
-      {/* Phase 19.2 Round 4：skip 窗口期机制
-          - 窗口期内（3s）：显示 skip 按钮，隐藏魔法阵
-          - 窗口期外：skip 淡出，魔法阵淡入，启用魔杖互动
-          - 首次/后续访问都走相同窗口期，避免 localStorage 缺失导致 skip 不显示 */}
+      {/* Phase 19.2 Round 5：魔法阵 + skip 按钮同时显示
+          - 魔法阵为主入口（挥魔杖或点击进入完整仪式）
+          - skip 按钮为辅（小字，位于魔法阵下方，低调） */}
       {isIdle && (
-        <div className="-mt-[200px] flex flex-col items-center gap-6">
-          {/* === 魔法阵入口（完整仪式） === */}
-          {/* 显示条件：skip 窗口过期后 */}
-          {skipWindowExpired && (
-            <motion.button
-              type="button"
-              onClick={activateLumos}
-              className="group relative flex flex-col items-center gap-4 rounded-full px-12 py-10 transition-all duration-700 hover:scale-105"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 0.3, scale: 1 }}
-              whileHover={{ opacity: 1, scale: 1.05 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-              aria-label="Enter the Study"
+        <div className="-mt-[200px] flex flex-col items-center gap-20">
+          {/* === 魔法阵入口（完整仪式，主入口） === */}
+          <motion.button
+            type="button"
+            onClick={activateLumos}
+            className="group relative flex flex-col items-center gap-4 rounded-full px-12 py-10 transition-all duration-700 hover:scale-105"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 0.55, scale: 1 }}
+            whileHover={{ opacity: 1, scale: 1.05 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+            aria-label="Enter the Study"
+          >
+            {/* 外层光晕（增强边缘虚化） */}
+            <motion.div
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle at center, rgba(201,162,39,0.18) 0%, rgba(250,76,20,0.10) 35%, transparent 70%)",
+                filter: "blur(12px)",
+              }}
+              animate={{ opacity: [0.5, 0.8, 0.5], scale: [0.95, 1.1, 0.95] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+
+            {/* 第二层虚化光晕 */}
+            <motion.div
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle at center, rgba(201,162,39,0.08) 0%, transparent 60%)",
+                filter: "blur(24px)",
+              }}
+              animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.15, 1] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            />
+
+            {/* 粒子星光动效 */}
+            <SparkleParticles />
+
+            {/* 死亡圣器符号 SVG（静止） */}
+            <motion.svg
+              viewBox="0 0 100 100"
+              className="relative h-24 w-24 sm:h-28 sm:w-28"
             >
-              {/* 外层光晕（增强边缘虚化） */}
-              <motion.div
-                className="pointer-events-none absolute inset-0 rounded-full"
-                style={{
-                  background:
-                    "radial-gradient(circle at center, rgba(201,162,39,0.18) 0%, rgba(250,76,20,0.10) 35%, transparent 70%)",
-                  filter: "blur(12px)",
-                }}
-                animate={{ opacity: [0.5, 0.8, 0.5], scale: [0.95, 1.1, 0.95] }}
+              <defs>
+                <radialGradient id="runeGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#c9a227" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#c9a227" stopOpacity="0" />
+                </radialGradient>
+              </defs>
+              {/* 外圈光晕 */}
+              <circle cx="50" cy="50" r="48" fill="url(#runeGlow)" />
+
+              {/* === 死亡圣器三符号 === */}
+              {/* 三角形（老魔杖 Elder Wand）— 外框 */}
+              <path d="M 50 14 L 86 78 L 14 78 Z" fill="none" stroke="#c9a227" strokeWidth="0.9" strokeLinejoin="round" opacity="0.75" />
+              {/* 圆形（复活石 Resurrection Stone）— 内切于三角形 */}
+              <circle cx="50" cy="56" r="21" fill="none" stroke="#c9a227" strokeWidth="0.7" opacity="0.65" />
+              {/* 竖线（隐形斗篷 Invisibility Cloak）— 顶点到底边中点 */}
+              <line x1="50" y1="14" x2="50" y2="78" stroke="#c9a227" strokeWidth="0.7" strokeLinecap="round" opacity="0.65" />
+
+              {/* 中心光点（呼吸感） */}
+              <motion.circle
+                cx="50" cy="56" r="1.5" fill="#c9a227"
+                animate={{ opacity: [0.4, 0.9, 0.4], r: [1, 1.8, 1] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               />
 
-              {/* 第二层虚化光晕 */}
-              <motion.div
-                className="pointer-events-none absolute inset-0 rounded-full"
-                style={{
-                  background:
-                    "radial-gradient(circle at center, rgba(201,162,39,0.08) 0%, transparent 60%)",
-                  filter: "blur(24px)",
-                }}
-                animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.15, 1] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              />
+              {/* 四方位符文点（保留外围星点装饰） */}
+              <circle cx="50" cy="6" r="1.2" fill="#c9a227" opacity="0.5" />
+              <circle cx="50" cy="94" r="1.2" fill="#c9a227" opacity="0.5" />
+              <circle cx="6" cy="50" r="1.2" fill="#c9a227" opacity="0.5" />
+              <circle cx="94" cy="50" r="1.2" fill="#c9a227" opacity="0.5" />
+            </motion.svg>
+          </motion.button>
 
-              {/* 粒子星光动效 */}
-              <SparkleParticles />
-
-              {/* 死亡圣器符号 SVG（静止） */}
-              <motion.svg
-                viewBox="0 0 100 100"
-                className="relative h-24 w-24 sm:h-28 sm:w-28"
-              >
-                <defs>
-                  <radialGradient id="runeGlow" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#c9a227" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="#c9a227" stopOpacity="0" />
-                  </radialGradient>
-                </defs>
-                {/* 外圈光晕 */}
-                <circle cx="50" cy="50" r="48" fill="url(#runeGlow)" />
-
-                {/* === 死亡圣器三符号 === */}
-                {/* 三角形（老魔杖 Elder Wand）— 外框 */}
-                <path d="M 50 14 L 86 78 L 14 78 Z" fill="none" stroke="#c9a227" strokeWidth="0.9" strokeLinejoin="round" opacity="0.75" />
-                {/* 圆形（复活石 Resurrection Stone）— 内切于三角形 */}
-                <circle cx="50" cy="56" r="21" fill="none" stroke="#c9a227" strokeWidth="0.7" opacity="0.65" />
-                {/* 竖线（隐形斗篷 Invisibility Cloak）— 顶点到底边中点 */}
-                <line x1="50" y1="14" x2="50" y2="78" stroke="#c9a227" strokeWidth="0.7" strokeLinecap="round" opacity="0.65" />
-
-                {/* 中心光点（呼吸感） */}
-                <motion.circle
-                  cx="50" cy="56" r="1.5" fill="#c9a227"
-                  animate={{ opacity: [0.4, 0.9, 0.4], r: [1, 1.8, 1] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                />
-
-                {/* 四方位符文点（保留外围星点装饰） */}
-                <circle cx="50" cy="6" r="1.2" fill="#c9a227" opacity="0.5" />
-                <circle cx="50" cy="94" r="1.2" fill="#c9a227" opacity="0.5" />
-                <circle cx="6" cy="50" r="1.2" fill="#c9a227" opacity="0.5" />
-                <circle cx="94" cy="50" r="1.2" fill="#c9a227" opacity="0.5" />
-              </motion.svg>
-            </motion.button>
-          )}
-
-          {/* === skip 快速进入按钮（窗口期内） ===
-              - 窗口期内（3s）显示，过期后淡出
-              - 点击 → handleQuickEnter（快速进入学习）
-              - 风格：Snape 冷峻，灰金色小字，非按钮
-              - 语义："回到学习"，而非"跳过仪式"（避免负面暗示） */}
-          <AnimatePresence>
-            {!skipWindowExpired && (
-              <motion.button
-                type="button"
-                onClick={handleQuickEnter}
-                className="group relative rounded-lg px-8 py-5 transition-all duration-500 hover:bg-gold/5"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 0.85, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                aria-label="Return to Study directly"
-              >
-                <span className="block font-serif text-base italic tracking-wider text-parchment/70 transition-colors group-hover:text-gold/90">
-                  ✦ Return to Study ✦
-                </span>
-                <span className="mt-1.5 block font-ui text-[9px] uppercase tracking-widest3 text-parchment/35">
-                  Skip the Ritual
-                </span>
-              </motion.button>
-            )}
-          </AnimatePresence>
+          {/* === 快速进入按钮（魔法阵下方，低调备用入口） ===
+              - 点击 → handleQuickEnter（直接进入书房学习）
+              - 风格：Snape 冷峻，灰金色小字，视觉权重最低
+              - 语义：已体验过仪式者的便捷通道，而非"跳过"（避免开发按钮感）
+              - 默认低 opacity，hover 才亮，确保魔法阵是视觉焦点 */}
+          <motion.button
+            type="button"
+            onClick={handleQuickEnter}
+            className="group relative rounded-lg px-6 py-2 transition-all duration-500 hover:bg-gold/5"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 0.5, y: 0 }}
+            whileHover={{ opacity: 0.9 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+            aria-label="Enter Study directly"
+          >
+            <span className="block font-serif text-sm italic tracking-wider text-parchment/45 transition-colors group-hover:text-gold/80">
+              ✦ Enter Study Directly ✦
+            </span>
+            <span className="mt-1 block font-ui text-[8px] uppercase tracking-widest3 text-parchment/25">
+              Without Ritual
+            </span>
+          </motion.button>
         </div>
       )}
 
