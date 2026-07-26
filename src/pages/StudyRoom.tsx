@@ -260,6 +260,7 @@ export default function StudyRoom() {
       {/* === Layer 4: MagicLayer（Lumos 仪式，独立 fixed 全屏 z-999） === */}
       <LumosEntrance
         ritual={ritual}
+        entered={entered}
         lessonCardProps={{
           lesson,
           lessonNumber,

@@ -38,6 +38,12 @@ import { motion, AnimatePresence } from "framer-motion";
 interface LumosEntranceProps {
   /** useLumosRitual 返回值（由 StudyRoom 传入） */
   ritual: UseLumosRitualReturn;
+  /** 是否已通过欢迎页进入（由 StudyRoom 传入）
+   *  关键：魔杖互动启用计时器必须等 entered=true 才启动，
+   *  否则 StudyRoom 在欢迎页阶段就 mount 并跑完 1 秒，
+   *  用户点击进入时魔杖互动已启用，失去"1 秒选择期"。
+   */
+  entered: boolean;
   /** LessonCard 所需 props（保留兼容，当前未使用） */
   lessonCardProps?: LessonCardProps;
 }
@@ -53,6 +59,7 @@ interface LumosEntranceProps {
  */
 export default function LumosEntrance({
   ritual,
+  entered,
   lessonCardProps,
 }: LumosEntranceProps) {
   // lessonCardProps 保留用于未来扩展（当前未使用，翻页后直接回首页）
@@ -60,10 +67,11 @@ export default function LumosEntrance({
   const { phase, bookOpen, activateLumos, completeAwakening, openBook, closeRitual, resetToIdle } =
     ritual;
 
-  // Phase 19.2 Round 5：魔法阵与 skip 按钮同时显示
-  //   - 魔法阵为主入口（挥魔杖或点击进入完整仪式）
-  //   - skip 按钮为辅（小字，位于魔法阵下方，快速进入学习）
-  //   - 两者同时出现，skip 不喧宾夺主
+  // Phase 19.2 Round 6：魔法阵 + skip 同时显示，魔杖互动 1 秒后启用
+  //   - 魔法阵与 skip 按钮立即同时显示（视觉无等待）
+  //   - 魔杖互动（MAGIC_SWEEP）延迟 1 秒启用，给用户选择 skip 的窗口
+  //   - 1 秒内挥魔杖无效，1 秒后挥魔杖触发完整仪式
+  //   - 点击魔法阵/skip 始终可用（不受 1 秒限制）
 
   const ritualEnterReaction = SNAPE_REACTIONS.find(
     (r) => r.moment === "ritual_enter",
@@ -74,6 +82,28 @@ export default function LumosEntrance({
   const isIdle = phase === "idle";
   const isClosed = phase === "closed";
   const isAwakening = phase === "awakening";
+
+  // 魔杖互动是否已启用（进入后 1 秒延迟）
+  // false = 1 秒选择期内，魔杖挥动不触发仪式（让用户有机会点 skip）
+  // true  = 1 秒后，魔杖挥动触发完整仪式
+  const [wandReady, setWandReady] = useState(false);
+
+  // entered 从 false→true 时重置 wandReady
+  useEffect(() => {
+    if (entered) {
+      setWandReady(false);
+    }
+  }, [entered]);
+
+  // 魔杖互动启用计时器：idle + entered 后启动 1 秒延迟
+  useEffect(() => {
+    if (!isIdle || !entered) return;
+    if (wandReady) return;
+    const timer = window.setTimeout(() => {
+      setWandReady(true);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [isIdle, entered, wandReady]);
 
   // Phase 17.1-D：ESC 键退出（仅在 Lumos 激活时响应）
   useEffect(() => {
@@ -107,15 +137,17 @@ export default function LumosEntrance({
   //   study 场景（首页单词页）禁止响应，避免重复唤醒。
   //   spellbook 场景预留翻页交互（TODO）。
   // Phase 19.1：触发时播放 wand_swish 音效。
+  // Phase 19.2 Round 6：1 秒选择期内魔杖挥动不触发（让用户有机会点 skip）。
   useEffect(() => {
     const unsub = magicEvents.on(MAGIC_EVENTS.MAGIC_SWEEP, () => {
       if (magicContext.getActiveScene() !== "lumos") return;
       if (phase !== "idle") return;
+      if (!wandReady) return; // 1 秒选择期内禁用魔杖
       sfxManager.play("wand_swish");
       activateLumos();
     });
     return unsub;
-  }, [phase, activateLumos]);
+  }, [phase, activateLumos, wandReady]);
 
   // Phase 19.1：打开书本时播放 book_open 音效。
   //   包装 openBook，避免修改 useLumosRitual 状态机。

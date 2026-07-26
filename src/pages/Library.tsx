@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import Flourish from "@/components/decor/Flourish";
-import ArchiveCategoryCard from "@/components/library/ArchiveCategoryCard";
 import ArchiveViewer from "@/components/library/ArchiveViewer";
+import MemoryShelf from "@/components/library/MemoryShelf";
+import MemoryChamberOverlay from "@/components/library/MemoryChamberOverlay";
 import { useEntered } from "@/hooks/useEntered";
 import { useNotebook } from "@/hooks/useNotebook";
 import { LIBRARY_ENTRIES } from "@/data/library";
@@ -40,14 +41,17 @@ import {
 export default function Library() {
   const { entered } = useEntered();
   const { count } = useNotebook();
-  const [expandedCategoryId, setExpandedCategoryId] =
-    useState<LibraryCategory | null>(null);
   // Phase 7C：当前展开的 Archive Chamber entryId（单选展开）
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
   // Phase 7D-3.2：全屏 Archive Viewer 当前查看的 entry
   const [viewerEntry, setViewerEntry] = useState<LibraryEntry | null>(null);
   // Phase 7D-6：已查看档案 entryId 列表（打开过 Viewer 即记录）
   const [viewedIds, setViewedIds] = useState<string[]>(getViewedArchives);
+  // Phase 20：横向 carousel 焦点索引（当前居中放大的分类）
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  // Phase 20.1 Round 1.5：当前被召唤的书（点击焦点书后进入 Memory Chamber）
+  //   null = 书架模式；非 null = Memory Chamber 模式（layoutId 飞出动画）
+  const [activeBookId, setActiveBookId] = useState<LibraryCategory | null>(null);
 
   // 订阅 viewedArchives 变化（跨组件 / 跨标签页同步）
   useEffect(() => {
@@ -76,8 +80,22 @@ export default function Library() {
     return map;
   }, []);
 
-  const handleToggleCategory = useCallback((categoryId: LibraryCategory) => {
-    setExpandedCategoryId((cur) => (cur === categoryId ? null : categoryId));
+  // Phase 20.1：MemoryShelf 焦点切换（切换时关闭已打开的 Chamber）
+  const handleFocusChange = useCallback((index: number) => {
+    setFocusedIndex(index);
+    setActiveBookId(null);
+  }, []);
+
+  // Phase 20.1 Round 1.5：焦点书点击 → 召唤该书的 Memory Chamber
+  //   通过 layoutId 飞出动画，书从书架飞到屏幕中心展开
+  const handleFocusedBookActivate = useCallback(() => {
+    const focusedCategory = LIBRARY_CATEGORIES[focusedIndex];
+    setActiveBookId(focusedCategory.id);
+  }, [focusedIndex]);
+
+  // Phase 20.1 Round 1.5：关闭 Memory Chamber，书飞回书架
+  const handleCloseChamber = useCallback(() => {
+    setActiveBookId(null);
   }, []);
 
   // Phase 7C：切换 Archive Chamber 展开 / 折叠（单选）
@@ -114,6 +132,19 @@ export default function Library() {
       markArchiveViewed(viewerEntry.id);
     }
   }, [viewerEntry]);
+
+  // Phase 20.1 Round 1.5：ESC 关闭 Memory Chamber
+  useEffect(() => {
+    if (!activeBookId) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setActiveBookId(null);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [activeBookId]);
 
   return (
     <section className="container relative px-6 pt-32 pb-24 sm:pt-36">
@@ -194,16 +225,16 @@ export default function Library() {
         initial={{ opacity: 0, y: -8 }}
         animate={entered ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
         transition={{ duration: 1, ease: "easeOut", delay: 0.1 }}
-        className="mb-10 text-center"
+        className="mb-12 text-center"
       >
         <p className="font-ui text-[10px] uppercase tracking-widest3 text-gold/60">
           The Half-Blood Prince&apos;s Study
         </p>
         <h1 className="mt-2 font-display text-2xl tracking-widest2 text-parchment/85 sm:text-3xl">
-          Professor Archive
+          Memory Archive
         </h1>
         <p className="mt-2 font-zh text-xs tracking-[0.4em] text-parchment/45 sm:text-sm">
-          教 授 资 料 库
+          记 忆 档 案 室
         </p>
         <Flourish className="mx-auto mt-5 h-3 w-52" variant="center" />
         {/* 当前进度 */}
@@ -211,7 +242,7 @@ export default function Library() {
           {count === 1 ? "1 spell gathered" : `${count} spells gathered`}
         </p>
         <p className="mt-1.5 font-serif text-xs italic text-parchment/35">
-          Collect more spells to unveil the Professor&apos;s secrets.
+          A chamber where gathered knowledge settles into memory.
         </p>
 
         {/* Phase 7D-6：Archive Discovery 进度 */}
@@ -229,29 +260,45 @@ export default function Library() {
         </div>
       </motion.div>
 
-      {/* 分类列表 */}
-      <motion.ul
+      {/* Phase 20.1 Round 1.5：MemoryShelf 魔法书架
+          - 3D 立体书背排列（ArchiveBook），焦点书居中突出上浮
+          - 横向拖动 / 左右箭头切换焦点
+          - 点击焦点书 → 召唤 Memory Chamber（layoutId 飞出动画） */}
+      <motion.div
         initial={{ opacity: 0 }}
         animate={entered ? { opacity: 1 } : { opacity: 0 }}
         transition={{ duration: 0.8, delay: 0.3 }}
-        className="mx-auto flex w-full max-w-[640px] flex-col gap-5"
       >
-        {LIBRARY_CATEGORIES.map((category, idx) => (
-          <ArchiveCategoryCard
-            key={category.id}
-            category={category}
-            entries={entriesByCategory.get(category.id) ?? []}
-            expanded={expandedCategoryId === category.id}
-            index={idx}
+        <MemoryShelf
+          categories={LIBRARY_CATEGORIES}
+          entriesByCategory={entriesByCategory}
+          progress={progress}
+          focusedIndex={focusedIndex}
+          onFocusChange={handleFocusChange}
+          onFocusedBookActivate={handleFocusedBookActivate}
+        />
+      </motion.div>
+
+      {/* Phase 20.1 Round 1.5：Memory Chamber 召唤覆盖层
+          - 点击焦点书时，书通过 layoutId 飞到屏幕中心
+          - 展开该分类的 entries（复用 ArchiveCategoryCard 渲染）
+          - ESC / 背景点击 / X 按钮关闭，书飞回书架 */}
+      <AnimatePresence>
+        {activeBookId && (
+          <MemoryChamberOverlay
+            key="memory-chamber"
+            category={LIBRARY_CATEGORIES.find((c) => c.id === activeBookId)!}
+            entries={entriesByCategory.get(activeBookId) ?? []}
             progress={progress}
-            onToggle={handleToggleCategory}
+            index={focusedIndex}
             expandedEntryId={expandedEntryId}
             onEntryToggle={handleEntryToggle}
             onImageView={handleImageView}
             viewedIds={viewedIds}
+            onClose={handleCloseChamber}
           />
-        ))}
-      </motion.ul>
+        )}
+      </AnimatePresence>
 
       {/* 返回书房 */}
       <motion.footer

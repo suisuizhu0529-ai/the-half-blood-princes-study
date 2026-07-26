@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { to: "/", label: "Study", end: true },
   { to: "/notebook", label: "Notebook", end: false },
-  { to: "/library", label: "Library", end: false },
+  { to: "/library", label: "Archive", end: false },
   { to: "/settings", label: "Settings", end: false },
 ];
 

@@ -216,6 +216,23 @@ export interface LibraryEntry {
 }
 
 /**
+ * 书本主题色（皮革 + 金线 + 光晕）。
+ * Phase 20.1 Round 1.5：每本记忆书拥有独立色彩身份。
+ */
+export interface BookColorTheme {
+  /** 皮革主色（深色） */
+  leather: string;
+  /** 皮革高光（封面渐变上半部分） */
+  leatherHighlight: string;
+  /** 金线/书名颜色 */
+  gold: string;
+  /** 焦点光晕颜色（低饱和度发光） */
+  glow: string;
+  /** 书页边缘泛黄色 */
+  pageEdge: string;
+}
+
+/**
  * 档案分类元信息（供 UI 渲染分类标题用）。
  */
 export interface LibraryCategoryMeta {
@@ -223,6 +240,8 @@ export interface LibraryCategoryMeta {
   title: string;
   titleZh: string;
   description: string;
+  /** Phase 20.1 Round 1.5：书本主题色，未指定时回退到默认深棕 */
+  colorTheme?: BookColorTheme;
 }
 
 export const LIBRARY_CATEGORIES: LibraryCategoryMeta[] = [
@@ -231,29 +250,69 @@ export const LIBRARY_CATEGORIES: LibraryCategoryMeta[] = [
     title: "Professor Profile",
     titleZh: "教 授 档 案",
     description: "The Potions Master's own record — sealed in his hand.",
+    // 黑色蛇纹皮（Snape 本人的书）
+    colorTheme: {
+      leather: "#0d0a08",
+      leatherHighlight: "#1a1410",
+      gold: "#8b7355",
+      glow: "rgba(139,115,85,0.5)",
+      pageEdge: "#d4c4a8",
+    },
   },
   {
     id: "potion-research",
     title: "Potion Research",
     titleZh: "魔 药 研 究",
     description: "Notes on infusions, antidotes, and the chemistry of silence.",
+    // 深绿色皮革（魔药学）
+    colorTheme: {
+      leather: "#14352a",
+      leatherHighlight: "#1f4a3a",
+      gold: "#c9a227",
+      glow: "rgba(124,255,178,0.4)",
+      pageEdge: "#e8d8b8",
+    },
   },
   {
     id: "hogwarts-documents",
     title: "Hogwarts Documents",
     titleZh: "霍 格 沃 茨 文 件",
     description: "Correspondence from the Headmaster's office, redacted.",
+    // 暗红色羊皮（官方文件）
+    colorTheme: {
+      leather: "#3a1a1a",
+      leatherHighlight: "#4f2424",
+      gold: "#c9a227",
+      glow: "rgba(220,80,60,0.4)",
+      pageEdge: "#e8d8b8",
+    },
   },
   {
     id: "literary-archive",
     title: "Literary Archive",
     titleZh: "文 学 档 案",
     description: "Lines collected from the margins of forgotten books.",
+    // 蓝灰色皮革（文学）
+    colorTheme: {
+      leather: "#1a2433",
+      leatherHighlight: "#243548",
+      gold: "#c9a227",
+      glow: "rgba(100,140,200,0.4)",
+      pageEdge: "#e8d8b8",
+    },
   },
   {
     id: "hidden-manuscripts",
     title: "Hidden Manuscripts",
     titleZh: "隐 秘 手 稿",
     description: "Inkings that the Professor never wished to share.",
+    // 紫黑色封印书（禁书）
+    colorTheme: {
+      leather: "#1a0d2e",
+      leatherHighlight: "#2a1644",
+      gold: "#9a7cc7",
+      glow: "rgba(154,124,199,0.5)",
+      pageEdge: "#d4c4a8",
+    },
   },
 ];
