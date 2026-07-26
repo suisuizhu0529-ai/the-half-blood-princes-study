@@ -41,8 +41,6 @@ import {
 export default function Library() {
   const { entered } = useEntered();
   const { count } = useNotebook();
-  // Phase 7C：当前展开的 Archive Chamber entryId（单选展开）
-  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
   // Phase 7D-3.2：全屏 Archive Viewer 当前查看的 entry
   const [viewerEntry, setViewerEntry] = useState<LibraryEntry | null>(null);
   // Phase 7D-6：已查看档案 entryId 列表（打开过 Viewer 即记录）
@@ -96,11 +94,6 @@ export default function Library() {
   // Phase 20.1 Round 1.5：关闭 Memory Chamber，书飞回书架
   const handleCloseChamber = useCallback(() => {
     setActiveBookId(null);
-  }, []);
-
-  // Phase 7C：切换 Archive Chamber 展开 / 折叠（单选）
-  const handleEntryToggle = useCallback((entryId: string) => {
-    setExpandedEntryId((cur) => (cur === entryId ? null : entryId));
   }, []);
 
   // Phase 7D-6：Archive Discovery 统计
@@ -279,9 +272,9 @@ export default function Library() {
         />
       </motion.div>
 
-      {/* Phase 20.1 Round 1.5：Memory Chamber 召唤覆盖层
+      {/* Phase 20.2：Memory Chamber 召唤覆盖层
           - 点击焦点书时，书通过 layoutId 飞到屏幕中心
-          - 展开该分类的 entries（复用 ArchiveCategoryCard 渲染）
+          - 展开该分类的 MemoryBook（翻页式书内内容）
           - ESC / 背景点击 / X 按钮关闭，书飞回书架 */}
       <AnimatePresence>
         {activeBookId && (
@@ -290,11 +283,8 @@ export default function Library() {
             category={LIBRARY_CATEGORIES.find((c) => c.id === activeBookId)!}
             entries={entriesByCategory.get(activeBookId) ?? []}
             progress={progress}
-            index={focusedIndex}
-            expandedEntryId={expandedEntryId}
-            onEntryToggle={handleEntryToggle}
-            onImageView={handleImageView}
             viewedIds={viewedIds}
+            onOpenArchive={handleImageView}
             onClose={handleCloseChamber}
           />
         )}

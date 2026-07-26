@@ -1,8 +1,10 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import type { LibraryCategoryMeta, LibraryEntry } from "@/types/library";
 import type { LearningProgress } from "@/utils/archiveUnlock";
-import ArchiveCategoryCard from "./ArchiveCategoryCard";
+import MemoryBook from "./MemoryBook";
+import ProfessorInteraction from "./ProfessorInteraction";
 
 interface MemoryChamberOverlayProps {
   /** 当前召唤的书（分类元信息） */
@@ -11,31 +13,41 @@ interface MemoryChamberOverlayProps {
   entries: LibraryEntry[];
   /** 学习进度（解锁状态用） */
   progress: LearningProgress;
-  /** 该分类在 LIBRARY_CATEGORIES 中的索引 */
-  index: number;
-  /** 当前展开的 entryId（单选展开） */
-  expandedEntryId: string | null;
-  /** 切换 entry 展开 */
-  onEntryToggle: (entryId: string) => void;
-  /** 点击图片档案 → 全屏 Viewer */
-  onImageView: (entry: LibraryEntry) => void;
   /** 已查看的 entryId 列表 */
   viewedIds: string[];
+  /** 点击 unlocked entry → 全屏 Archive Viewer */
+  onOpenArchive: (entry: LibraryEntry) => void;
   /** 关闭 Memory Chamber，书飞回书架 */
   onClose: () => void;
 }
 
 /**
- * MemoryChamberOverlay —— Phase 20.1 Round 1.5 记忆室召唤覆盖层。
+ * MemoryChamberOverlay —— Phase 20.2 记忆室召唤覆盖层。
  *
  * 当用户点击焦点书时，书通过 layoutId 飞出书架、移到屏幕中心并放大展开，
- * 显示该分类的 entries（复用 ArchiveCategoryCard 渲染，不改数据结构）。
+ * 显示该分类的 MemoryBook（翻页式书内内容）+ ProfessorInteraction（教授互动区域）。
  *
- * 动画流程（Framer Motion layoutId 自动补间）：
- *   1. 书架上的 motion.button（layoutId=`memory-book-${id}`）被卸载
- *   2. 本组件的 motion.div（相同 layoutId）被挂载到中心
- *   3. Framer Motion 自动补间：书从书架位置飞到中心 + 放大 + rotateY 回正
- *   4. 飞行完成后，展开 ArchiveCategoryCard 内容
+ * Phase 20.2 修复：
+ *   - 恢复教授互动区域（Image/Content/Listen/Conversation 四区）
+ *   - ProfessorInteraction 作为独立区域，跟随 MemoryBook 翻页同步切换
+ *   - pageIndex/direction 状态提升到本组件，MemoryBook 改为受控
+ *
+ * Phase 20.2 修复 v2：
+ *   - 点击空白处关闭：用独立背景层接收点击，避免内层 stopPropagation 阻挡
+ *   - 魔杖翻页：订阅 MAGIC_SWEEP，根据轨迹 x 方向判断左/右翻页
+ *   - 魔杖关闭：订阅 MAGIC_DISMISS，快速横向挥动关闭 Chamber
+ *
+ * Phase 20.2 修复 v3：
+ *   - 移除 MAGIC_SWEEP / MAGIC_DISMISS 订阅（纯挥动易误触）
+ *   - 改为 mousedown + 横向拖动 ≥ 阈值 才翻页（按住拖动模式）
+ *   - 支持连续翻页（拖动距离每超过 repeatInterval 触发一次）
+ *   - 关闭保留：X 按钮 / ESC / 点击背景
+ *
+ * 结构：
+ *   MemoryChamberOverlay
+ *    ├ MemoryBook（翻页式书内内容）
+ *    ├ ProfessorInteraction（教授互动独立区域）
+ *    └ ArchiveViewer（保留，由 Library.tsx 管理）
  *
  * 关闭：
  *   - 点击 X 按钮 / ESC / 点击背景
@@ -45,27 +57,116 @@ export default function MemoryChamberOverlay({
   category,
   entries,
   progress,
-  index,
-  expandedEntryId,
-  onEntryToggle,
-  onImageView,
   viewedIds,
+  onOpenArchive,
   onClose,
 }: MemoryChamberOverlayProps) {
   const theme = category.colorTheme;
 
+  // Phase 20.2 修复：pageIndex/direction 提升到本组件，
+  // 让 ProfessorInteraction 跟随 MemoryBook 翻页同步切换 entry
+  const [pageIndex, setPageIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+
+  const total = entries.length;
+
+  const handlePageChange = useCallback(
+    (next: number, dir: number) => {
+      setPageIndex(next);
+      setDirection(dir);
+    },
+    [],
+  );
+
+  // 当前页对应的 entry（传给 ProfessorInteraction）
+  const currentEntry = entries[pageIndex];
+
+  // Phase 20.2 修复 v4：按住拖动翻页，每次按下只翻一页
+  //   - mousedown：记录起点 + triggered=false
+  //   - mousemove（按下时）：横向位移 ≥ 阈值 且 未 triggered → 翻页 + triggered=true
+  //   - mouseup：清空状态（下一次按下才能再翻）
+  //   横向占优（|dx| > |dy|）才触发，避免与上下滚动/选择文本冲突
+  const dragStateRef = useRef<{
+    startX: number;
+    startY: number;
+    triggered: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!theme) return;
+
+    const DRAG_THRESHOLD = 110; // 触发翻页所需横向拖动距离（px）
+
+    const handleDown = (e: MouseEvent) => {
+      dragStateRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        triggered: false,
+      };
+    };
+
+    const handleMove = (e: MouseEvent) => {
+      const state = dragStateRef.current;
+      if (!state || state.triggered) return;
+      const dx = e.clientX - state.startX;
+      const dy = e.clientY - state.startY;
+      // 横向不占优则忽略（可能是上下滚动或选词）
+      if (Math.abs(dx) <= Math.abs(dy)) return;
+      if (Math.abs(dx) < DRAG_THRESHOLD) return;
+
+      if (dx < 0) {
+        // 向左拖 → 下一页
+        setPageIndex((prev) => {
+          if (prev >= total - 1) return prev;
+          setDirection(1);
+          return prev + 1;
+        });
+      } else {
+        // 向右拖 → 上一页
+        setPageIndex((prev) => {
+          if (prev <= 0) return prev;
+          setDirection(-1);
+          return prev - 1;
+        });
+      }
+      state.triggered = true; // 本次按下已翻页，mouseup 前不再触发
+    };
+
+    const handleUp = () => {
+      dragStateRef.current = null;
+    };
+
+    window.addEventListener("mousedown", handleDown);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => {
+      window.removeEventListener("mousedown", handleDown);
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, [theme, total]);
+
+  if (!theme) return null;
+
   return (
     <motion.div
-      className="fixed inset-0 z-[2000] flex items-center justify-center"
+      className="fixed inset-0 z-[2000] flex items-start justify-center overflow-y-auto"
       initial={{ backgroundColor: "rgba(0,0,0,0)" }}
-      animate={{ backgroundColor: "rgba(0,0,0,0.85)" }}
+      animate={{ backgroundColor: "rgba(0,0,0,0.88)" }}
       exit={{ backgroundColor: "rgba(0,0,0,0)" }}
       transition={{ duration: 0.5 }}
-      onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`${category.title} Memory Chamber`}
     >
+      {/* Phase 20.2 修复 v2：独立背景层接收点击关闭
+          不依赖外层 motion.div 的 onClick，避免内层 stopPropagation 阻挡 */}
+      <div
+        className="absolute inset-0"
+        onClick={onClose}
+        aria-hidden
+      />
+
       {/* 关闭按钮 */}
       <button
         type="button"
@@ -79,107 +180,78 @@ export default function MemoryChamberOverlay({
         <X size={20} strokeWidth={1.5} />
       </button>
 
-      {/* 召唤出的书（layoutId 飞出 + 放大 + 展开） */}
+      {/* 召唤出的书（layoutId 飞出 + 放大 + 打开 MemoryBook + ProfessorInteraction）
+          Phase 20.2.1：
+          - MemoryBook 作为主体（双页真实比例）
+          - ProfessorInteraction 作为书外"夹页"（独立羊皮纸条），不进入书框
+          - items-start + my-12，内容超出视口时可滚动，
+            不超出时通过 my-12 在视觉上接近居中，书周围留空白可点击关闭 */}
       <motion.div
         layoutId={`memory-book-${category.id}`}
-        className="relative flex flex-col items-center"
-        style={{
-          width: "min(680px, 90vw)",
-          maxHeight: "85vh",
-          // 3D 透视：飞出过程中保持立体感
-          perspective: "1200px",
-        }}
+        className="relative my-12 flex w-fit max-w-[92vw] flex-col items-center"
         onClick={(e) => e.stopPropagation()}
         initial={{ rotateY: -12 }}
         animate={{ rotateY: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        style={{
+          perspective: "1800px",
+        }}
       >
-        {/* 书本外框：皮革质感（呼应书架上的书） */}
+        {/* === 书本外框：皮革质感（呼应书架上的书） ===
+            Phase 20.2.1：仅包裹 MemoryBook，不再塞入 ProfessorInteraction */}
         <motion.div
-          className="relative w-full overflow-hidden rounded-md"
+          className="relative rounded-md p-1.5"
           style={{
-            background: theme
-              ? `linear-gradient(180deg, ${theme.leatherHighlight} 0%, ${theme.leather} 100%)`
-              : "linear-gradient(180deg, #3a2a1a 0%, #2a1d12 100%)",
-            boxShadow: `0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px ${theme?.gold ?? "#c9a227"}44, inset 0 0 60px rgba(0,0,0,0.5)`,
-            border: `1px solid ${theme?.gold ?? "#c9a227"}33`,
+            background: `linear-gradient(180deg, ${theme.leatherHighlight} 0%, ${theme.leather} 100%)`,
+            boxShadow: `0 36px 90px rgba(0,0,0,0.92), 0 0 0 1px ${theme.gold}44, inset 0 0 60px rgba(0,0,0,0.5)`,
+            border: `1px solid ${theme.gold}33`,
           }}
           initial={{ opacity: 0.6 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          {/* 书顶装饰金线 */}
-          <div
-            className="absolute inset-x-8 top-5 h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${theme?.gold ?? "#c9a227"}80, transparent)`,
-            }}
+          {/* MemoryBook：立体魔法书双页（受控） */}
+          <MemoryBook
+            category={category}
+            entries={entries}
+            progress={progress}
+            viewedIds={viewedIds}
+            pageIndex={pageIndex}
+            direction={direction}
+            onPageChange={handlePageChange}
+            onOpenArchive={onOpenArchive}
           />
-          <div
-            className="absolute inset-x-10 top-8 h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${theme?.gold ?? "#c9a227"}40, transparent)`,
-            }}
-          />
-
-          {/* 书名标题区 */}
-          <div className="px-10 pt-14 text-center">
-            <p className="font-ui text-[10px] uppercase tracking-widest3" style={{ color: `${theme?.gold ?? "#c9a227"}99` }}>
-              Memory Chamber
-            </p>
-            <h2 className="mt-3 font-display text-2xl tracking-widest2 sm:text-3xl" style={{ color: theme?.gold ?? "#c9a227" }}>
-              {category.title}
-            </h2>
-            <p className="mt-2 font-zh text-sm tracking-[0.4em] text-parchment/55">
-              {category.titleZh}
-            </p>
-            <p className="mx-auto mt-4 max-w-md font-serif text-sm italic text-parchment/60">
-              {category.description}
-            </p>
-          </div>
-
-          {/* 书底装饰金线 */}
-          <div
-            className="absolute inset-x-10 bottom-32 h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${theme?.gold ?? "#c9a227"}40, transparent)`,
-            }}
-          />
-          <div
-            className="absolute inset-x-8 bottom-28 h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${theme?.gold ?? "#c9a227"}80, transparent)`,
-            }}
-          />
-
-          {/* entries 内容区（复用 ArchiveCategoryCard 渲染逻辑）
-              注意：ArchiveCategoryCard 的 expanded 永远为 true（在 Chamber 中永远展开） */}
-          <div className="max-h-[50vh] overflow-y-auto px-8 pb-12 pt-8">
-            <ArchiveCategoryCard
-              category={category}
-              entries={entries}
-              expanded={true}
-              index={index}
-              progress={progress}
-              onToggle={() => {
-                /* Chamber 内不响应卡片级 toggle */
-              }}
-              expandedEntryId={expandedEntryId}
-              onEntryToggle={onEntryToggle}
-              onImageView={onImageView}
-              viewedIds={viewedIds}
-            />
-          </div>
         </motion.div>
+
+        {/* === ProfessorInteraction：书外夹页 ===
+            Phase 20.2.1：作为独立羊皮纸条悬浮于书下方，
+            不进入书框，避免破坏书页比例。
+            限制最大高度 + 内部滚动，长内容不撑坏整体布局。
+            宽度对齐书页（单页宽度 ≈ 整书 1/2） */}
+        <div
+          className="parchment-surface mt-6 w-full max-w-[440px] rounded-sm px-8 py-6"
+          style={{
+            boxShadow:
+              "0 12px 30px rgba(0,0,0,0.55), inset 0 0 50px rgba(120,90,40,0.10)",
+            maxHeight: "38vh",
+            overflowY: "auto",
+          }}
+        >
+          <ProfessorInteraction
+            entry={currentEntry}
+            progress={progress}
+            onImageView={onOpenArchive}
+          />
+        </div>
 
         {/* 底部巨大投影（书悬浮于空间中） */}
         <div
-          className="mt-2 rounded-full"
+          className="mt-3 rounded-full"
           style={{
-            width: "60%",
-            height: "20px",
-            background: "rgba(0,0,0,0.7)",
-            filter: "blur(20px)",
+            width: "55%",
+            height: "22px",
+            background: "rgba(0,0,0,0.72)",
+            filter: "blur(22px)",
           }}
         />
       </motion.div>

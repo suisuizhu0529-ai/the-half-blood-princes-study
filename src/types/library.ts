@@ -264,12 +264,12 @@ export const LIBRARY_CATEGORIES: LibraryCategoryMeta[] = [
     title: "Potion Research",
     titleZh: "魔 药 研 究",
     description: "Notes on infusions, antidotes, and the chemistry of silence.",
-    // 深绿色皮革（魔药学）
+    // 深绿色皮革（魔药学，暗绿药剂瓶感）
     colorTheme: {
       leather: "#14352a",
       leatherHighlight: "#1f4a3a",
       gold: "#c9a227",
-      glow: "rgba(124,255,178,0.4)",
+      glow: "rgba(70,120,90,0.35)",
       pageEdge: "#e8d8b8",
     },
   },

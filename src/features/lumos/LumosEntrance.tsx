@@ -28,7 +28,6 @@ import AncientSpellBook from "./spellbook/AncientSpellBook";
 import BookTransition from "./spellbook/BookTransition";
 import SnapeWhisper from "@/features/snape/SnapeWhisper";
 import { SNAPE_REACTIONS } from "@/core/snape/reactions";
-import { magicEvents, MAGIC_EVENTS } from "@/features/magic/MagicEvents";
 import { magicContext } from "@/features/magic/MagicContext";
 import { sfxManager } from "@/services/audio/sfxManager";
 import { getAsset } from "./scene/assetManifest";
@@ -132,22 +131,62 @@ export default function LumosEntrance({
     }
   }, [phase]);
 
-  // Phase 17.2.2：MAGIC_SWEEP 场景门控。
+  // Phase 17.2.2：仪式触发门控（Phase 20.2 修复 v3 改为按住拖动模式）。
   //   仅 lumos 场景 + idle 阶段才激活仪式。
   //   study 场景（首页单词页）禁止响应，避免重复唤醒。
   //   spellbook 场景预留翻页交互（TODO）。
   // Phase 19.1：触发时播放 wand_swish 音效。
-  // Phase 19.2 Round 6：1 秒选择期内魔杖挥动不触发（让用户有机会点 skip）。
+  // Phase 19.2 Round 6：1 秒选择期内不响应（让用户有机会点 skip）。
+  // Phase 20.2 修复 v3：移除 MAGIC_SWEEP 订阅（纯挥动易误触），
+  //   改为 mousedown + 横向拖动 ≥ 阈值 才激活（按住拖动模式）。
+  //   区分"正常移动鼠标观看内容"与"施法意图"——必须按下鼠标 + 横向拖动。
+  const lumosDragRef = useRef<{
+    startX: number;
+    startY: number;
+    triggered: boolean;
+  } | null>(null);
+
   useEffect(() => {
-    const unsub = magicEvents.on(MAGIC_EVENTS.MAGIC_SWEEP, () => {
-      if (magicContext.getActiveScene() !== "lumos") return;
-      if (phase !== "idle") return;
-      if (!wandReady) return; // 1 秒选择期内禁用魔杖
+    if (!isIdle || !entered) return;
+
+    const DRAG_THRESHOLD = 120; // 横向拖动阈值（px）
+
+    const handleDown = (e: MouseEvent) => {
+      lumosDragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        triggered: false,
+      };
+    };
+
+    const handleMove = (e: MouseEvent) => {
+      const state = lumosDragRef.current;
+      if (!state || state.triggered) return;
+      const dx = e.clientX - state.startX;
+      const dy = e.clientY - state.startY;
+      // 横向不占优则忽略（上下滚动等）
+      if (Math.abs(dx) <= Math.abs(dy)) return;
+      if (Math.abs(dx) < DRAG_THRESHOLD) return;
+
+      state.triggered = true;
+      if (!wandReady) return; // 1 秒选择期内禁用
       sfxManager.play("wand_swish");
       activateLumos();
-    });
-    return unsub;
-  }, [phase, activateLumos, wandReady]);
+    };
+
+    const handleUp = () => {
+      lumosDragRef.current = null;
+    };
+
+    window.addEventListener("mousedown", handleDown);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => {
+      window.removeEventListener("mousedown", handleDown);
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, [isIdle, entered, wandReady, activateLumos]);
 
   // Phase 19.1：打开书本时播放 book_open 音效。
   //   包装 openBook，避免修改 useLumosRitual 状态机。
