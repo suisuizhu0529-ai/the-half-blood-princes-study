@@ -1,5 +1,5 @@
 /**
- * GestureFxLayer（Phase 19.1 · 手势视觉反馈层）。
+ * GestureFxLayer（Phase 19.1 · 手势视觉反馈层；Phase 19.2 · 场景门控）。
  *
  * 定位：
  *   全局订阅 MAGIC_CIRCLE / DEATHLY_HALLOWS_GESTURE 事件，
@@ -20,11 +20,19 @@
  *   DEATHLY_HALLOWS_GESTURE：
  *     - 死亡圣器符号（三角+圆+竖线）在鼠标位置短暂亮起
  *     - 1.5s 后消失
+ *
+ * Phase 19.2 场景门控：
+ *   仅在 magicContext.scene === "lumos" 时响应事件
+ *     - lumos：Lumos 入口（死亡圣器符号页）+ awakening 仪式 → 允许反馈
+ *     - study：StudyRoom 日常阅读（closed 阶段）→ 禁止反馈，避免干扰学习
+ *     - spellbook：魔法书打开 → 禁止反馈，避免覆盖 BookTransition
+ *   不修改 GestureDetector 核心算法，仅在消费端门控。
  */
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { magicEvents, MAGIC_EVENTS, type MagicEventPayload } from "@/features/magic/MagicEvents";
+import { magicContext } from "@/features/magic/MagicContext";
 
 /** 单次视觉反馈实例 */
 interface FxInstance {
@@ -42,6 +50,10 @@ export default function GestureFxLayer() {
 
   useEffect(() => {
     const addFx = (type: "circle" | "deathly-hallows") => (payload: MagicEventPayload) => {
+      // Phase 19.2：场景门控 — 仅 Lumos（入口 + awakening）允许反馈
+      //   study（日常阅读）和 spellbook（魔法书打开）禁止响应
+      if (magicContext.getActiveScene() !== "lumos") return;
+
       const id = ++fxIdCounter;
       const fx: FxInstance = { id, type, x: payload.x, y: payload.y };
       setFxList((prev) => [...prev, fx]);

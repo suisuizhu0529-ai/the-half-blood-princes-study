@@ -1,5 +1,5 @@
 /**
- * SfxManager（Phase 19.1 · 环境音效合成器）。
+ * SfxManager（Phase 19.1 · 环境音效合成器；Phase 19.2 · 主动初始化）。
  *
  * 定位：
  *   不依赖外部音频文件，使用 Web Audio API 实时合成短促环境音。
@@ -20,6 +20,12 @@
  * 使用方式：
  *   import { sfxManager } from "@/services/audio/sfxManager";
  *   sfxManager.play("wand_swish");
+ *
+ * Phase 19.2 主动初始化：
+ *   - 暴露 initialize() 公开方法，在用户明确手势（点击 Enter）时调用
+ *   - 仍保持 lazy 语义：不播放任何声音，仅创建 AudioContext 并 resume
+ *   - 不违反 autoplay policy：仅在 user gesture 内调用
+ *   - 失败不静默吞掉，console.warn 提示
  *
  * 不做：
  *   - 不引入第三方音频库
@@ -43,6 +49,7 @@ const MASTER_VOLUME = 0.15;
  *   - 延迟创建 AudioContext（首次 play 时初始化，避免 autoplay policy 问题）
  *   - 每次播放创建新的 oscillator + gain node，播放完自动清理
  *   - 所有音效共享一个 master gain node
+ *   - Phase 19.2：支持主动 initialize() 在用户手势内预热
  */
 class SfxManager {
   private ctx: AudioContext | null = null;
@@ -71,11 +78,31 @@ class SfxManager {
     }
     // 如果 context 被暂停（autoplay policy），尝试恢复
     if (this.ctx.state === "suspended") {
-      this.ctx.resume().catch(() => {
-        // 静默失败：用户未交互时无法恢复
+      this.ctx.resume().catch((err) => {
+        // Phase 19.2：失败不静默吞掉，提示调试
+        console.warn("[SfxManager] AudioContext resume failed:", err);
       });
     }
     return this.ctx;
+  }
+
+  /**
+   * Phase 19.2：主动初始化 AudioContext。
+   *
+   * 使用场景：
+   *   - 用户明确点击 Entrance.handleEnter 时调用
+   *   - 在 user gesture 内执行，符合 autoplay policy
+   *
+   * 行为：
+   *   - 创建 AudioContext + master gain（如未创建）
+   *   - 尝试 resume（如被 suspended）
+   *   - 不播放任何声音
+   *   - 失败时 console.warn，不抛出
+   *
+   * 后续 play() 调用可直接复用此 context，避免首次播放延迟。
+   */
+  initialize(): void {
+    this.ensureContext();
   }
 
   /**

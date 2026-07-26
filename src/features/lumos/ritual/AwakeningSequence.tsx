@@ -30,6 +30,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import CandleRitual, { type CandleStage } from "./CandleRitual";
+import CandleAmbientLight from "./CandleAmbientLight";
 import ParticleField from "../scene/ParticleField";
 import { sfxManager } from "@/services/audio/sfxManager";
 
@@ -224,6 +225,14 @@ export default function AwakeningSequence({
           />
         ))}
       </motion.svg>
+
+      {/* Phase 19.2：蜡烛环境光层（房间被点亮，而非蜡烛自身发光）
+          z=5 位于黑暗叠加层（z=10）之下，蜡烛之上，作为底层环境光 */}
+      <CandleAmbientLight
+        centerStage={centerStage}
+        leftStage={leftStage}
+        rightStage={rightStage}
+      />
 
       {/* 蜡烛组（3 根，中央优先点燃，绝对定位实现前/后景关系） */}
       {/* 左蜡烛（远景，scale 0.9） */}

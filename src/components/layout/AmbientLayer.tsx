@@ -1,21 +1,23 @@
+import { motion, useTransform } from "framer-motion";
 import Candle from "@/components/decor/Candle";
 import { cn } from "@/lib/utils";
 import type { StudyAtmosphere } from "@/types/studyAtmosphere";
 import { DEFAULT_ATMOSPHERE } from "@/types/studyAtmosphere";
+import { useDeskParallax } from "@/hooks/useDeskParallax";
 
 /**
- * 书房氛围背景层（Phase 16.1-A 升级：状态驱动）。
+ * 书房氛围背景层（Phase 16.1-A 升级：状态驱动；Phase 19.2：微视差）。
  *
  * 层级（从底到顶）：
- *  1. 石墙渐变（增强纵深）
- *  2. 拱形夜窗（右上，星空 + 玻璃雨丝 + 雾气响应 trust）
- *  3. 壁炉暖光（右下，呼吸 + 上升火星响应 curiosity）
- *  4. 书架剪影（左侧，深色书脊 + 金色高光响应 milestones）
- *  5. 桌面边缘（底部，深木渐变）
- *  6. 蜡烛群（数量响应 milestones，摇曳速度响应 trust）
- *  7. 雨丝（CSS 平移，移动端隐藏）
- *  8. 颗粒 noise 叠层
- *  9. 暗角 vignette
+ *  1. 石墙渐变（增强纵深，最远，无视差）
+ *  2. 拱形夜窗（右上，星空 + 玻璃雨丝 + 雾气响应 trust） — background 视差
+ *  3. 壁炉暖光（右下，呼吸 + 上升火星响应 curiosity） — background 视差
+ *  4. 书架剪影（左侧，深色书脊 + 金色高光响应 milestones） — background 视差
+ *  5. 桌面边缘（底部，深木渐变） — midground 视差
+ *  6. 蜡烛群（数量响应 milestones，摇曳速度响应 trust） — midground 视差
+ *  7. 雨丝（CSS 平移，移动端隐藏，无视差）
+ *  8. 颗粒 noise 叠层（无视差）
+ *  9. 暗角 vignette（无视差）
  *
  * Phase 16.1-A 变化：
  *   - 新增 atmosphere?: StudyAtmosphere prop
@@ -23,6 +25,13 @@ import { DEFAULT_ATMOSPHERE } from "@/types/studyAtmosphere";
  *   - 蜡烛数量动态化（1-5 根）
  *   - 雾气 / 月光 / 火焰强度 / 书架高光 响应 Memory
  *   - 未传入 atmosphere 时使用 DEFAULT_ATMOSPHERE（向后兼容）
+ *
+ * Phase 19.2 变化（空间感升级，回应 Claude "像博客页面"）：
+ *   - 接入 useDeskParallax，背景层与中景层各自应用极小偏移
+ *   - background（夜窗/壁炉/书架）：1-3px
+ *   - midground（桌面/蜡烛）：3-6px
+ *   - prefers-reduced-motion 时 hook 自动禁用（保持 0.5 = 不偏移）
+ *   - 不改变内容结构，仅添加 motion.div 包装层
  *
  * 全部 fixed inset-0，pointer-events-none，仅作视觉氛围。
  */
@@ -60,6 +69,16 @@ export default function AmbientLayer({
   const trustFactor = (0.6 - fogDensity) / 0.45; // 0-1
   const candleDurationMultiplier = 1 + trustFactor * 0.5; // 1x → 1.5x
 
+  // Phase 19.2：微视差（mouseX/mouseY 0-1，0.5 = 中心）
+  //   - background（夜窗/壁炉/书架）：±3px / ±2px
+  //   - midground（桌面/蜡烛）：±6px / ±4px
+  //   - prefers-reduced-motion 时 hook 保持 0.5，输出 0 偏移
+  const { mouseX, mouseY } = useDeskParallax();
+  const bgX = useTransform(mouseX, [0, 1], [3, -3]);
+  const bgY = useTransform(mouseY, [0, 1], [2, -2]);
+  const mgX = useTransform(mouseX, [0, 1], [6, -6]);
+  const mgY = useTransform(mouseY, [0, 1], [4, -4]);
+
   return (
     <div
       aria-hidden
@@ -68,7 +87,7 @@ export default function AmbientLayer({
         className,
       )}
     >
-      {/* 1. 石墙渐变纵深增强 */}
+      {/* 1. 石墙渐变纵深增强（最远层，不应用视差） */}
       <div
         className="absolute inset-0"
         style={{
@@ -77,47 +96,53 @@ export default function AmbientLayer({
         }}
       />
 
-      {/* 2. 拱形夜窗（右上） — 雾气 + 月光响应 trust */}
-      <NightWindow
-        fogDensity={fogDensity}
-        moonBrightness={moonBrightness}
-        className="absolute right-[6%] top-[8%] hidden md:block"
-      />
-
-      {/* 3. 壁炉暖光（右下） — 火焰强度 + 火星数量响应 curiosity */}
-      <FireplaceGlow
-        intensity={fireplaceIntensity}
-        emberCount={magicParticleCount}
-        className="absolute -right-32 bottom-[-10%] h-[80vh] w-[60vw]"
-      />
-
-      {/* 4. 书架剪影（左侧） — 金色高光响应 memoryActivatedCount */}
-      <BookshelfSilhouette
-        glow={bookshelfGlow}
-        className="absolute left-0 top-[15%] hidden lg:block"
-      />
-
-      {/* 5. 桌面边缘（底部深木） */}
-      <div
-        className="absolute inset-x-0 bottom-0 h-[18vh]"
-        style={{
-          background:
-            "linear-gradient(180deg, transparent 0%, rgba(20, 12, 8, 0.55) 40%, rgba(10, 6, 4, 0.92) 100%)",
-        }}
-      />
-
-      {/* 6. 蜡烛群 — 数量响应 milestones，摇曳速度响应 trust */}
-      {CANDLE_POSITIONS.slice(0, candleCount).map((pos, i) => (
-        <Candle
-          key={i}
-          scale={pos.scale}
-          delay={pos.delay}
-          duration={pos.duration * candleDurationMultiplier}
-          className={pos.className}
+      {/* === Phase 19.2: Background 视差组（夜窗/壁炉/书架，1-3px） === */}
+      <motion.div className="absolute inset-0" style={{ x: bgX, y: bgY }}>
+        {/* 2. 拱形夜窗（右上） — 雾气 + 月光响应 trust */}
+        <NightWindow
+          fogDensity={fogDensity}
+          moonBrightness={moonBrightness}
+          className="absolute right-[6%] top-[8%] hidden md:block"
         />
-      ))}
 
-      {/* 7. 雨丝（移动端隐藏） */}
+        {/* 3. 壁炉暖光（右下） — 火焰强度 + 火星数量响应 curiosity */}
+        <FireplaceGlow
+          intensity={fireplaceIntensity}
+          emberCount={magicParticleCount}
+          className="absolute -right-32 bottom-[-10%] h-[80vh] w-[60vw]"
+        />
+
+        {/* 4. 书架剪影（左侧） — 金色高光响应 memoryActivatedCount */}
+        <BookshelfSilhouette
+          glow={bookshelfGlow}
+          className="absolute left-0 top-[15%] hidden lg:block"
+        />
+      </motion.div>
+
+      {/* === Phase 19.2: Midground 视差组（桌面/蜡烛，3-6px） === */}
+      <motion.div className="absolute inset-0" style={{ x: mgX, y: mgY }}>
+        {/* 5. 桌面边缘（底部深木） */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-[18vh]"
+          style={{
+            background:
+              "linear-gradient(180deg, transparent 0%, rgba(20, 12, 8, 0.55) 40%, rgba(10, 6, 4, 0.92) 100%)",
+          }}
+        />
+
+        {/* 6. 蜡烛群 — 数量响应 milestones，摇曳速度响应 trust */}
+        {CANDLE_POSITIONS.slice(0, candleCount).map((pos, i) => (
+          <Candle
+            key={i}
+            scale={pos.scale}
+            delay={pos.delay}
+            duration={pos.duration * candleDurationMultiplier}
+            className={pos.className}
+          />
+        ))}
+      </motion.div>
+
+      {/* 7. 雨丝（移动端隐藏，无视差，覆盖全屏） */}
       <RainStreaks className="absolute inset-0 hidden md:block" />
 
       {/* 8. 颗粒 noise */}

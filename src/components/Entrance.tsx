@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Feather } from "lucide-react";
 import Flourish from "./decor/Flourish";
+import { sfxManager } from "@/services/audio/sfxManager";
 
 interface EntranceProps {
   onEntered?: () => void;
@@ -18,6 +19,9 @@ interface EntranceProps {
  *
  * 全屏 z-50 黑幕，遮住底层 AmbientLayer 与 StudyRoom。
  * 淡出后露出书房氛围，笔记翻开动画由 StudyRoom 在 entered=true 时触发。
+ *
+ * Phase 19.2：handleEnter 在 user gesture 内主动初始化 AudioContext，
+ *   避免后续首次音效播放因 suspended context 延迟。不播放任何声音。
  */
 export default function Entrance({ onEntered }: EntranceProps) {
   const [showTitle, setShowTitle] = useState(false);
@@ -35,6 +39,11 @@ export default function Entrance({ onEntered }: EntranceProps) {
 
   const handleEnter = () => {
     if (exiting) return;
+    // Phase 19.2：在用户明确点击手势内预热 AudioContext
+    //   - 不播放声音，仅创建 context 并尝试 resume
+    //   - 后续 wand_swish / candle_ignite 等可立即播放，无首次延迟
+    //   - 失败时 sfxManager 内部 console.warn，不阻塞入场流程
+    sfxManager.initialize();
     setExiting(true);
   };
 
@@ -44,6 +53,8 @@ export default function Entrance({ onEntered }: EntranceProps) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Enter") {
         e.preventDefault();
+        // Phase 19.2：键盘 Enter 也是有效 user gesture，预热 AudioContext
+        sfxManager.initialize();
         setExiting(true);
       }
     };
