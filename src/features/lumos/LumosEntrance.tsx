@@ -23,6 +23,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { UseLumosRitualReturn } from "./hooks/useLumosRitual";
+import { useRitualSkip } from "./hooks/useRitualSkip";
 import AwakeningSequence from "./ritual/AwakeningSequence";
 import AncientSpellBook from "./spellbook/AncientSpellBook";
 import BookTransition from "./spellbook/BookTransition";
@@ -59,6 +60,12 @@ export default function LumosEntrance({
   void lessonCardProps;
   const { phase, bookOpen, activateLumos, completeAwakening, openBook, closeRitual, resetToIdle } =
     ritual;
+
+  // Phase 19.2 Round 4：日常仪式快速进入
+  //   - 首次访问：完整 Awakening + BookTransition（6.4s 仪式感）
+  //   - 后续访问：idle 阶段额外显示"Return to Study"快速入口
+  //   - markRitualCompleted 在仪式完成（closeRitual）时持久化
+  const { hasCompletedBefore, markRitualCompleted } = useRitualSkip();
 
   const ritualEnterReaction = SNAPE_REACTIONS.find(
     (r) => r.moment === "ritual_enter",
@@ -141,7 +148,21 @@ export default function LumosEntrance({
 
   // Phase 19.2：BookTransition 转场完成 → closeRitual（替代旧 1.4s timer）
   //   useLumosRitual 状态机不变，仅延后 closeRitual 调用时机
+  //   Phase 19.2 Round 4：同时标记仪式已完成，下次访问可快速进入
   const handleTransitionComplete = () => {
+    markRitualCompleted();
+    closeRitual();
+  };
+
+  // Phase 19.2 Round 4：快速进入（跳过 Awakening + BookTransition）
+  //   - 仅 hasCompletedBefore = true 时可用
+  //   - 直接调用 closeRitual：idle → closed，跳过 awakening/research
+  //   - 标记仪式已完成（保持持久化）
+  //   - 不播放 wand_swish（避免与"跳过"语义冲突）
+  //   - 播放极轻的 page_turn 音效，作为"翻到今日课程"的反馈
+  const handleQuickEnter = () => {
+    sfxManager.play("page_turn");
+    markRitualCompleted();
     closeRitual();
   };
 
@@ -152,6 +173,7 @@ export default function LumosEntrance({
   return (
     <>
       {/* === idle：首页内的魔法阵入口 === */}
+      {/* Phase 19.2 Round 4：后续访问时额外显示"Return to Study"快速入口 */}
       {isIdle && (
         <div className="-mt-[200px] flex flex-col items-center gap-6">
           <motion.button
@@ -159,7 +181,7 @@ export default function LumosEntrance({
             onClick={activateLumos}
             className="group relative flex flex-col items-center gap-4 rounded-full px-12 py-10 transition-all duration-700 hover:scale-105"
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 0.3, scale: 1 }}
+            animate={{ opacity: hasCompletedBefore ? 0.2 : 0.3, scale: 1 }}
             whileHover={{ opacity: 1, scale: 1.05 }}
             transition={{ duration: 1.2, ease: "easeOut" }}
             aria-label="Enter the Study"
@@ -227,6 +249,31 @@ export default function LumosEntrance({
               <circle cx="94" cy="50" r="1.2" fill="#c9a227" opacity="0.5" />
             </motion.svg>
           </motion.button>
+
+          {/* Phase 19.2 Round 4：后续访问的"Return to Study"快速入口
+              - 仅 hasCompletedBefore = true 时显示
+              - 位置：魔法阵下方，不打扰首次用户
+              - 风格：Snape 冷峻，灰金色小字，非按钮
+              - 语义："回到学习"，而非"跳过仪式"（避免负面暗示） */}
+          {hasCompletedBefore && (
+            <motion.button
+              type="button"
+              onClick={handleQuickEnter}
+              className="group relative mt-4 rounded-lg px-6 py-3 transition-all duration-500 hover:bg-gold/5"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 0.7, y: 0 }}
+              whileHover={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              aria-label="Return to Study directly"
+            >
+              <span className="font-serif text-sm italic tracking-wider text-parchment/60 transition-colors group-hover:text-gold/85">
+                ✦ Return to Study ✦
+              </span>
+              <span className="mt-1 block font-ui text-[9px] uppercase tracking-widest3 text-parchment/30">
+                Skip the Ritual
+              </span>
+            </motion.button>
+          )}
         </div>
       )}
 
