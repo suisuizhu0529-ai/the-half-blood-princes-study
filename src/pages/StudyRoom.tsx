@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, useTransform } from "framer-motion";
 import LessonCard from "@/components/study/LessonCard";
 import DailyQuote from "@/components/study/DailyQuote";
 import DeskArtifactLayer from "@/components/decor/DeskArtifactLayer";
@@ -9,6 +9,7 @@ import { useEntered } from "@/hooks/useEntered";
 import { useEntranceAnimation, stageOpacity } from "@/hooks/useEntranceAnimation";
 import { useNotebook } from "@/hooks/useNotebook";
 import { useSpeech } from "@/hooks/useSpeech";
+import { useDeskParallax } from "@/hooks/useDeskParallax";
 import { getDailyLesson, getLessonNumber } from "@/utils/dailyLesson";
 import type { NotebookEntry } from "@/types/notebook";
 
@@ -33,6 +34,14 @@ function formatDarkAcademiaDate(d: Date): string {
 export default function StudyRoom() {
   const { entered } = useEntered();
   const { stage, shouldAnimate } = useEntranceAnimation();
+
+  // Phase 19.2 Round 2：内容层 parallax（最前景 ±1px）
+  //   层级：墙(0) < 书架(±3) < 桌面(±6) < 纸张(±1)
+  //   纸张偏移最小，但比墙"更近"，建立前景层级
+  //   prefers-reduced-motion 时 hook 自动禁用
+  const { mouseX, mouseY } = useDeskParallax();
+  const contentX = useTransform(mouseX, [0, 1], [1, -1]);
+  const contentY = useTransform(mouseY, [0, 1], [1, -1]);
 
   // Phase 17.1-D：Lumos 激活时首页完全隐藏
   //   - idle：初始状态，只显示魔法阵入口（不显示 lesson）
@@ -173,32 +182,38 @@ export default function StudyRoom() {
               </motion.div>
 
               {/* 课程卡 */}
-              <motion.div
-                initial={{ opacity: 0, y: -12, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              >
-                <LessonCard
-                  lesson={lesson}
-                  lessonNumber={lessonNumber}
-                  dateLabel={dateLabel}
-                  start={entered}
-                  speaking={speaking}
-                  speechSupported={supported}
-                  onListen={handleListen}
-                  onRepeat={handleRepeat}
-                  saved={saved}
-                  onAdd={handleAdd}
-                />
+              {/* Phase 19.2 Round 2：外层 parallax（±1px），内层保留入场动画 */}
+              <motion.div style={{ x: contentX, y: contentY }}>
+                <motion.div
+                  initial={{ opacity: 0, y: -12, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                >
+                  <LessonCard
+                    lesson={lesson}
+                    lessonNumber={lessonNumber}
+                    dateLabel={dateLabel}
+                    start={entered}
+                    speaking={speaking}
+                    speechSupported={supported}
+                    onListen={handleListen}
+                    onRepeat={handleRepeat}
+                    saved={saved}
+                    onAdd={handleAdd}
+                  />
+                </motion.div>
               </motion.div>
 
               {/* 每日一句 */}
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.1 }}
-              >
-                <DailyQuote quote={quote} start={entered} saved={false} />
+              {/* Phase 19.2 Round 2：外层 parallax（±1px），内层保留入场动画 */}
+              <motion.div style={{ x: contentX, y: contentY }}>
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.1 }}
+                >
+                  <DailyQuote quote={quote} start={entered} saved={false} />
+                </motion.div>
               </motion.div>
 
               {/* 底部签名 */}

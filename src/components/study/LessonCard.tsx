@@ -35,6 +35,11 @@ export type { LessonCardProps };
 /**
  * 中央"Today's Lesson"羊皮纸笔记卡。
  * Framer Motion 翻开入场：start=true 时 rotateX(-15) → 0 + opacity。
+ *
+ * Phase 19.2 Round 2：空间化升级（回应 Claude "内容还是博客卡片"）。
+ *   - 微旋转 -0.5deg（桌面摆放感，非完美居中）
+ *   - 双层阴影：近贴桌柔光 + 远空间深影（纸张离开桌面）
+ *   - parallax 由 StudyRoom 外层 motion.div 提供（±1px，最前景层级）
  */
 export default function LessonCard({
   lesson,
@@ -50,11 +55,23 @@ export default function LessonCard({
 }: LessonCardProps) {
   return (
     <motion.article
-      initial={{ rotateX: -15, opacity: 0, y: 24 }}
-      animate={start ? { rotateX: 0, opacity: 1, y: 0 } : { rotateX: -15, opacity: 0, y: 24 }}
+      initial={{ rotateX: -15, rotate: -0.5, opacity: 0, y: 24 }}
+      animate={
+        start
+          ? { rotateX: 0, rotate: -0.5, opacity: 1, y: 0 }
+          : { rotateX: -15, rotate: -0.5, opacity: 0, y: 24 }
+      }
       transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-      style={{ transformOrigin: "center top", transformPerspective: 1200 }}
-      className="parchment-surface relative mx-auto w-full max-w-[640px] rounded-sm shadow-parchment-deep"
+      style={{
+        transformOrigin: "center top",
+        transformPerspective: 1200,
+        // Phase 19.2 Round 2：双层阴影模拟纸张离开桌面
+        //   近：贴桌柔光（4px offset，低 blur，中透明度）
+        //   远：空间深影（保留 shadow-parchment-deep 的层次）
+        boxShadow:
+          "0 4px 12px rgba(0,0,0,0.25), 0 24px 60px -12px rgba(0,0,0,0.85), 0 8px 24px -8px rgba(0,0,0,0.7)",
+      }}
+      className="parchment-surface relative mx-auto w-full max-w-[640px] rounded-sm"
       aria-label="Today's Lesson"
     >
       {/* 双层金色边框 */}

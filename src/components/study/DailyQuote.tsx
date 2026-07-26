@@ -19,6 +19,11 @@ interface DailyQuoteProps {
 
 /**
  * 每日一句卡片：金边引文样式，底部词汇解析。
+ *
+ * Phase 19.2 Round 2：空间化升级。
+ *   - 微旋转 +0.3deg（与 LessonCard -0.5deg 反向，避免对称呆板）
+ *   - 增强阴影：贴桌柔光 + 空间深影（保留墨水玻璃材质，与羊皮纸形成对比）
+ *   - parallax 由 StudyRoom 外层 motion.div 提供（±1px，最前景层级）
  */
 export default function DailyQuote({
   quote,
@@ -28,8 +33,8 @@ export default function DailyQuote({
 }: DailyQuoteProps) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 30 }}
-      animate={start ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 30, rotate: 0.3 }}
+      animate={start ? { opacity: 1, y: 0, rotate: 0.3 } : { opacity: 0, y: 30, rotate: 0.3 }}
       transition={{ duration: 1, ease: "easeOut", delay: 0.9 }}
       className="relative mx-auto mt-14 w-full max-w-[640px]"
       aria-label="Daily Quote"
@@ -46,8 +51,14 @@ export default function DailyQuote({
         />
       </div>
 
-      {/* 引文卡片 */}
-      <div className="relative rounded-sm border border-gold/30 bg-ink/35 px-7 py-8 backdrop-blur-sm sm:px-10 sm:py-10">
+      {/* 引文卡片 — Phase 19.2 Round 2：双层阴影空间化 */}
+      <div
+        className="relative rounded-sm border border-gold/30 bg-ink/35 px-7 py-8 backdrop-blur-sm sm:px-10 sm:py-10"
+        style={{
+          boxShadow:
+            "0 4px 12px rgba(0,0,0,0.25), 0 18px 50px -12px rgba(0,0,0,0.7), 0 6px 18px -6px rgba(0,0,0,0.5)",
+        }}
+      >
         <div className="pointer-events-none absolute inset-[5px] rounded-sm border border-gold/15" />
 
         {/* 大引号 */}
