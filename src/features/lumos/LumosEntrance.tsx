@@ -23,7 +23,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { UseLumosRitualReturn } from "./hooks/useLumosRitual";
-import { useRitualSkip } from "./hooks/useRitualSkip";
 import AwakeningSequence from "./ritual/AwakeningSequence";
 import AncientSpellBook from "./spellbook/AncientSpellBook";
 import BookTransition from "./spellbook/BookTransition";
@@ -62,12 +61,10 @@ export default function LumosEntrance({
     ritual;
 
   // Phase 19.2 Round 4：日常仪式快速进入
-  //   - 首次访问：完整 Awakening + BookTransition（6.4s 仪式感）
-  //   - 后续访问：idle 阶段先显示 skip 按钮（3 秒窗口期）
+  //   idle 阶段先显示 skip 按钮（3 秒窗口期）
   //     - 3 秒内点击 → 快速进入学习
   //     - 3 秒后未点击 → skip 淡出 + 魔法阵显现 + 魔杖互动激活
-  //   - markRitualCompleted 在仪式完成（closeRitual）时持久化
-  const { hasCompletedBefore, markRitualCompleted } = useRitualSkip();
+  //   首次/后续访问都走相同窗口期，避免 localStorage 缺失导致 skip 不显示
 
   const ritualEnterReaction = SNAPE_REACTIONS.find(
     (r) => r.moment === "ritual_enter",
@@ -84,10 +81,12 @@ export default function LumosEntrance({
   // true  = 窗口期外，隐藏 skip 按钮，显示魔法阵 + 启用魔杖互动
   const [skipWindowExpired, setSkipWindowExpired] = useState(false);
 
-  // skip 窗口计时器：仅后续访问 + idle 阶段启动
+  // skip 窗口计时器：idle 阶段启动 3 秒倒计时
+  //   - 不依赖 hasCompletedBefore，首次/后续访问都走窗口期
+  //   - 避免因 localStorage 缺失导致 skip 按钮永不显示
+  //   - 离开 idle 时重置，下次进入重新计时
   useEffect(() => {
-    if (!hasCompletedBefore || !isIdle) {
-      // 离开 idle 或首次访问时重置，下次进入重新计时
+    if (!isIdle) {
       setSkipWindowExpired(false);
       return;
     }
@@ -96,7 +95,7 @@ export default function LumosEntrance({
       setSkipWindowExpired(true);
     }, 3000);
     return () => clearTimeout(timer);
-  }, [hasCompletedBefore, isIdle, skipWindowExpired]);
+  }, [isIdle, skipWindowExpired]);
 
   // Phase 17.1-D：ESC 键退出（仅在 Lumos 激活时响应）
   useEffect(() => {
@@ -130,20 +129,19 @@ export default function LumosEntrance({
   //   study 场景（首页单词页）禁止响应，避免重复唤醒。
   //   spellbook 场景预留翻页交互（TODO）。
   // Phase 19.1：触发时播放 wand_swish 音效。
-  // Phase 19.2 Round 4：后续访问 skip 窗口期门控。
-  //   - 首次访问：魔杖挥动立即触发完整仪式
-  //   - 后续访问 + skip 窗口期内：魔杖挥动不触发（等用户选 skip）
-  //   - 后续访问 + skip 窗口期外：魔杖挥动触发完整仪式（用户已选择仪式）
+  // Phase 19.2 Round 4：skip 窗口期门控。
+  //   - 窗口期内：魔杖挥动不触发（等用户选 skip）
+  //   - 窗口期外：魔杖挥动触发完整仪式（用户已选择仪式）
   useEffect(() => {
     const unsub = magicEvents.on(MAGIC_EVENTS.MAGIC_SWEEP, () => {
       if (magicContext.getActiveScene() !== "lumos") return;
       if (phase !== "idle") return;
-      if (hasCompletedBefore && !skipWindowExpired) return; // 窗口期内禁用
+      if (!skipWindowExpired) return; // 窗口期内禁用魔杖
       sfxManager.play("wand_swish");
       activateLumos();
     });
     return unsub;
-  }, [phase, activateLumos, hasCompletedBefore, skipWindowExpired]);
+  }, [phase, activateLumos, skipWindowExpired]);
 
   // Phase 19.1：打开书本时播放 book_open 音效。
   //   包装 openBook，避免修改 useLumosRitual 状态机。
@@ -174,21 +172,16 @@ export default function LumosEntrance({
 
   // Phase 19.2：BookTransition 转场完成 → closeRitual（替代旧 1.4s timer）
   //   useLumosRitual 状态机不变，仅延后 closeRitual 调用时机
-  //   Phase 19.2 Round 4：同时标记仪式已完成，下次访问可快速进入
   const handleTransitionComplete = () => {
-    markRitualCompleted();
     closeRitual();
   };
 
   // Phase 19.2 Round 4：快速进入（跳过 Awakening + BookTransition）
-  //   - 仅 hasCompletedBefore = true 时可用
   //   - 直接调用 closeRitual：idle → closed，跳过 awakening/research
-  //   - 标记仪式已完成（保持持久化）
   //   - 不播放 wand_swish（避免与"跳过"语义冲突）
   //   - 播放极轻的 page_turn 音效，作为"翻到今日课程"的反馈
   const handleQuickEnter = () => {
     sfxManager.play("page_turn");
-    markRitualCompleted();
     closeRitual();
   };
 
@@ -200,14 +193,14 @@ export default function LumosEntrance({
     <>
       {/* === idle：首页内的入口 === */}
       {/* Phase 19.2 Round 4：skip 窗口期机制
-          - 首次访问：直接显示魔法阵（完整仪式入口）
-          - 后续访问 + 窗口期内（3s）：只显示 skip 按钮，隐藏魔法阵
-          - 后续访问 + 窗口期外：skip 淡出，魔法阵淡入（完整仪式入口） */}
+          - 窗口期内（3s）：显示 skip 按钮，隐藏魔法阵
+          - 窗口期外：skip 淡出，魔法阵淡入，启用魔杖互动
+          - 首次/后续访问都走相同窗口期，避免 localStorage 缺失导致 skip 不显示 */}
       {isIdle && (
         <div className="-mt-[200px] flex flex-col items-center gap-6">
           {/* === 魔法阵入口（完整仪式） === */}
-          {/* 显示条件：首次访问，或后续访问 skip 窗口过期后 */}
-          {(!hasCompletedBefore || skipWindowExpired) && (
+          {/* 显示条件：skip 窗口过期后 */}
+          {skipWindowExpired && (
             <motion.button
               type="button"
               onClick={activateLumos}
@@ -283,14 +276,13 @@ export default function LumosEntrance({
             </motion.button>
           )}
 
-          {/* === skip 快速进入按钮（后续访问 + 窗口期内） ===
-              - 仅 hasCompletedBefore && !skipWindowExpired 时显示
-              - 3 秒窗口期，过期后淡出
+          {/* === skip 快速进入按钮（窗口期内） ===
+              - 窗口期内（3s）显示，过期后淡出
               - 点击 → handleQuickEnter（快速进入学习）
               - 风格：Snape 冷峻，灰金色小字，非按钮
               - 语义："回到学习"，而非"跳过仪式"（避免负面暗示） */}
           <AnimatePresence>
-            {hasCompletedBefore && !skipWindowExpired && (
+            {!skipWindowExpired && (
               <motion.button
                 type="button"
                 onClick={handleQuickEnter}
