@@ -109,15 +109,20 @@ export default function LumosEntrance({
   //   study 场景（首页单词页）禁止响应，避免重复唤醒。
   //   spellbook 场景预留翻页交互（TODO）。
   // Phase 19.1：触发时播放 wand_swish 音效。
+  // Phase 19.2 Round 4 修复：后续访问禁用魔杖自动触发。
+  //   - 首次访问：魔杖挥动触发完整仪式（保留魔法感）
+  //   - 后续访问：魔杖挥动不触发，避免误触抢跳过 skip 入口
+  //   - 用户自主选择：魔法阵（完整仪式）或 Return to Study（快速进入）
   useEffect(() => {
     const unsub = magicEvents.on(MAGIC_EVENTS.MAGIC_SWEEP, () => {
       if (magicContext.getActiveScene() !== "lumos") return;
       if (phase !== "idle") return;
+      if (hasCompletedBefore) return; // 后续访问禁用魔杖自动触发
       sfxManager.play("wand_swish");
       activateLumos();
     });
     return unsub;
-  }, [phase, activateLumos]);
+  }, [phase, activateLumos, hasCompletedBefore]);
 
   // Phase 19.1：打开书本时播放 book_open 音效。
   //   包装 openBook，避免修改 useLumosRitual 状态机。
