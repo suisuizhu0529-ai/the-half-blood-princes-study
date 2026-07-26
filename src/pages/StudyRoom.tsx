@@ -155,6 +155,31 @@ export default function StudyRoom() {
             shouldAnimate={shouldAnimate}
           />
 
+          {/* === Phase 19.2 Round 3：Ambient lighting continuity ===
+           * 仪式完成后（closed 阶段）保留微弱蜡烛余光，建立"同一房间"感知。
+           *   - 仅在 showLesson 时显示（仪式已完成）
+           *   - opacity 0.10，极克制（Snape 书房夜晚桌角余光，非再次燃烧）
+           *   - 暖色 radial-gradient，呼应 Awakening 的 CandleAmbientLight
+           *   - pointer-events:none，不影响交互
+           *   - 不修改 useLumosRitual，仅消费 phase 状态
+           *   - 与 AmbientLayer（背景层）互补：背景给静态氛围，此层给"仪式痕迹"
+           */}
+          {showLesson && (
+            <motion.div
+              aria-hidden="true"
+              className="pointer-events-none fixed inset-0"
+              style={{
+                zIndex: 1,
+                background:
+                  "radial-gradient(ellipse 55% 45% at 50% 68%, rgba(255, 200, 120, 0.18) 0%, rgba(250, 160, 80, 0.08) 35%, transparent 70%)",
+                mixBlendMode: "screen",
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.1 }}
+              transition={{ duration: 1.8, ease: "easeOut", delay: 0.4 }}
+            />
+          )}
+
           {/* === idle 阶段：只显示魔法阵入口，不显示 lesson 内容 === */}
           {ritual.phase === "idle" && (
             <div className="flex min-h-[60vh] items-center justify-center -mt-40" />
