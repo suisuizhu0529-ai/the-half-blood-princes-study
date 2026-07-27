@@ -56,7 +56,9 @@ export default function ArchiveViewer({ entry, onClose }: ArchiveViewerProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
+          // Phase 20.2.3-B：z-[3000] 高于 MemoryChamberOverlay 的 z-[2000]
+          // 保证图片查看器浮于记忆书之上，不被遮挡
+          className="fixed inset-0 z-[3000] flex items-center justify-center p-4 sm:p-8"
           style={{
             backgroundColor: "rgba(0,0,0,0.85)",
             backdropFilter: "blur(6px)",

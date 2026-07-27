@@ -1,7 +1,15 @@
-import { motion } from "framer-motion";
-import { Lock, Check, Feather } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Lock, Check, Feather, Volume2, MessageSquare } from "lucide-react";
 import type { BookColorTheme, LibraryEntry } from "@/types/library";
-import type { UnlockStatus } from "@/utils/archiveUnlock";
+import type { UnlockStatus, LearningProgress } from "@/utils/archiveUnlock";
+
+/** Phase 20.2.2：entry 内部特性解锁状态（由 MemoryChamberOverlay 计算后透传） */
+type FeatureStatus = {
+  image: boolean;
+  content: boolean;
+  audio: boolean;
+  conversation: boolean;
+};
 
 interface MemoryPageProps {
   /** 当前展示的 entry */
@@ -18,6 +26,16 @@ interface MemoryPageProps {
   theme: BookColorTheme;
   /** 点击 unlocked entry → 打开 ArchiveViewer 或就地展开 Chamber */
   onOpenArchive: (entry: LibraryEntry) => void;
+  /** Phase 20.2.2：学习进度（用于未解锁特性的提示文案） */
+  progress: LearningProgress;
+  /** Phase 20.2.2：entry 内部特性解锁状态 */
+  featureStatus: FeatureStatus;
+  /** Phase 20.2.2：TTS 是否正在播放 */
+  speaking: boolean;
+  /** Phase 20.2.2：TTS 是否可用 */
+  audioSupported: boolean;
+  /** Phase 20.2.2：点击 Listen 触发（speak/stop + 写入 audioPlayed 由上层处理） */
+  onListen: () => void;
 }
 
 /**
@@ -42,6 +60,11 @@ export default function MemoryPage({
   viewed,
   theme,
   onOpenArchive,
+  progress,
+  featureStatus,
+  speaking,
+  audioSupported,
+  onListen,
 }: MemoryPageProps) {
   const isSealed = entry.locked || status === "sealed";
 
@@ -189,6 +212,299 @@ export default function MemoryPage({
                       </p>
                     )}
                   </button>
+                </div>
+              )}
+
+              {/* === Phase 20.2.2：Listen 区（页边魔法印记风格） ===
+                  从 ProfessorInteraction 移入，融入书页视觉语言。
+                  不再是按钮，而是书页上的魔法印记：金线 + 图标 + 引言。 */}
+              {entry.audio && (
+                <div className="mt-10">
+                  {featureStatus.audio ? (
+                    <button
+                      type="button"
+                      onClick={onListen}
+                      disabled={!audioSupported}
+                      aria-label={speaking ? "Stop playback" : "Listen to the Professor"}
+                      className="group flex w-full items-center justify-center gap-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span
+                        className="h-px w-10 transition-all duration-500 group-hover:w-14"
+                        style={{
+                          background: `linear-gradient(90deg, transparent, ${theme.gold}80)`,
+                        }}
+                      />
+                      <span className="relative flex h-7 w-7 items-center justify-center">
+                        {speaking ? (
+                          <motion.span
+                            className="absolute inset-0 rounded-full"
+                            style={{
+                              background: `radial-gradient(circle, ${theme.gold}55 0%, transparent 70%)`,
+                            }}
+                            animate={{
+                              opacity: [0.5, 1, 0.5],
+                              scale: [0.9, 1.1, 0.9],
+                            }}
+                            transition={{
+                              duration: 1.6,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                            }}
+                          />
+                        ) : (
+                          <span
+                            className="absolute inset-0 rounded-full opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                            style={{
+                              background: `radial-gradient(circle, ${theme.gold}33 0%, transparent 70%)`,
+                            }}
+                          />
+                        )}
+                        <Volume2
+                          size={13}
+                          strokeWidth={1.4}
+                          className="relative"
+                          style={{ color: speaking ? theme.gold : `${theme.gold}cc` }}
+                        />
+                      </span>
+                      <span
+                        className="font-serif text-sm italic tracking-wide transition-colors duration-500"
+                        style={{
+                          color: speaking ? theme.gold : `${theme.gold}cc`,
+                        }}
+                      >
+                        {speaking
+                          ? "The Professor is speaking…"
+                          : "Hear the Professor's recollection"}
+                      </span>
+                      <span
+                        className="h-px w-10 transition-all duration-500 group-hover:w-14"
+                        style={{
+                          background: `linear-gradient(90deg, ${theme.gold}80, transparent)`,
+                        }}
+                      />
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-center gap-3 py-2">
+                      <span
+                        className="h-px w-10"
+                        style={{
+                          background: `linear-gradient(90deg, transparent, ${theme.gold}40)`,
+                        }}
+                      />
+                      <Volume2
+                        size={12}
+                        strokeWidth={1.2}
+                        style={{ color: `${theme.gold}60` }}
+                      />
+                      <span
+                        className="font-serif text-xs italic"
+                        style={{ color: `${theme.gold}90` }}
+                      >
+                        The voice remains sealed.
+                        {entry.unlockFeatures?.audio !== undefined && (
+                          <>
+                            {" "}
+                            Gather{" "}
+                            <span style={{ color: theme.gold }}>
+                              {Math.max(
+                                0,
+                                entry.unlockFeatures.audio -
+                                  progress.collectedWords,
+                              )}
+                            </span>{" "}
+                            more spells to hear it.
+                          </>
+                        )}
+                      </span>
+                      <span
+                        className="h-px w-10"
+                        style={{
+                          background: `linear-gradient(90deg, ${theme.gold}40, transparent)`,
+                        }}
+                      />
+                    </div>
+                  )}
+                  {entry.audio.estimatedDurationSec &&
+                    featureStatus.audio && (
+                      <p className="mt-1 text-center font-ui text-[9px] uppercase tracking-widest3 text-ink/35">
+                        ~ {entry.audio.estimatedDurationSec}s recollection
+                      </p>
+                    )}
+
+                  {/* === Phase 20.2.3-A：Listen 字幕卷轴 ===
+                      speaking 时展开，显示 voiceText 全文。
+                      - 不改 speech 架构，仅读 entry.audio.voiceText
+                      - 羊皮纸卷轴质感，衬线斜体，金线落款
+                      - AnimatePresence 提供展开/收起过渡 */}
+                  <AnimatePresence initial={false}>
+                    {speaking && entry.audio.voiceText && (
+                      <motion.div
+                        key="voice-transcript"
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{
+                          opacity: 1,
+                          height: "auto",
+                          marginTop: 16,
+                        }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div
+                          className="relative rounded-sm px-6 py-5"
+                          style={{
+                            // 羊皮纸卷轴：略深于书页底色，加内阴影显层次
+                            background:
+                              "linear-gradient(180deg, rgba(60,42,20,0.08), rgba(60,42,20,0.04))",
+                            boxShadow:
+                              "inset 0 0 30px rgba(120,90,40,0.10), inset 0 0 0 1px rgba(120,90,40,0.18)",
+                          }}
+                        >
+                          {/* 顶部小标：Listening... + 脉动点 */}
+                          <div className="flex items-center justify-center gap-2">
+                            <motion.span
+                              className="h-1 w-1 rounded-full"
+                              style={{ background: theme.gold }}
+                              animate={{ opacity: [0.3, 1, 0.3] }}
+                              transition={{
+                                duration: 1.4,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                              }}
+                            />
+                            <span
+                              className="font-ui text-[9px] uppercase tracking-widest3"
+                              style={{ color: `${theme.gold}cc` }}
+                            >
+                              ✦ Listening ✦
+                            </span>
+                            <motion.span
+                              className="h-1 w-1 rounded-full"
+                              style={{ background: theme.gold }}
+                              animate={{ opacity: [0.3, 1, 0.3] }}
+                              transition={{
+                                duration: 1.4,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                                delay: 0.7,
+                              }}
+                            />
+                          </div>
+
+                          {/* 顶部金线 */}
+                          <div
+                            className="mx-auto mt-3 h-px w-16"
+                            style={{
+                              background: `linear-gradient(90deg, transparent, ${theme.gold}80, transparent)`,
+                            }}
+                          />
+
+                          {/* 字幕正文：衬线斜体，阅读级排版 */}
+                          <p className="mt-4 text-center font-serif text-sm italic leading-relaxed text-ink/75 sm:text-[15px] sm:leading-[1.85]">
+                            {entry.audio.voiceText}
+                          </p>
+
+                          {/* 底部金线 */}
+                          <div
+                            className="mx-auto mt-4 h-px w-16"
+                            style={{
+                              background: `linear-gradient(90deg, transparent, ${theme.gold}60, transparent)`,
+                            }}
+                          />
+
+                          {/* 落款 */}
+                          <p
+                            className="mt-3 text-center font-serif text-xs italic tracking-widest2"
+                            style={{ color: `${theme.gold}aa` }}
+                          >
+                            — Severus Snape
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* === Phase 20.2.2：Conversation 区（封蜡/未解锁章节风格） ===
+                  不打开新页面，不实现真实对话。
+                  像未解锁章节的封蜡印记，提示未来可开启。 */}
+              {entry.conversation && (
+                <div className="mt-6">
+                  {featureStatus.conversation ? (
+                    <div className="flex flex-col items-center gap-2 py-2">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="h-px w-8"
+                          style={{
+                            background: `linear-gradient(90deg, transparent, ${theme.gold}60)`,
+                          }}
+                        />
+                        <MessageSquare
+                          size={11}
+                          strokeWidth={1.3}
+                          style={{ color: `${theme.gold}80` }}
+                        />
+                        <span
+                          className="h-px w-8"
+                          style={{
+                            background: `linear-gradient(90deg, ${theme.gold}60, transparent)`,
+                          }}
+                        />
+                      </div>
+                      <p
+                        className="font-serif text-xs italic"
+                        style={{ color: `${theme.gold}95` }}
+                      >
+                        A conversation remains sealed…
+                      </p>
+                      <p className="font-ui text-[9px] uppercase tracking-widest3 text-ink/40">
+                        Open when the memory awakens
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 py-2">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="h-px w-8"
+                          style={{
+                            background: `linear-gradient(90deg, transparent, ${theme.gold}40)`,
+                          }}
+                        />
+                        <Lock
+                          size={10}
+                          strokeWidth={1.4}
+                          style={{ color: `${theme.gold}60` }}
+                        />
+                        <span
+                          className="h-px w-8"
+                          style={{
+                            background: `linear-gradient(90deg, ${theme.gold}40, transparent)`,
+                          }}
+                        />
+                      </div>
+                      <p
+                        className="font-serif text-xs italic"
+                        style={{ color: `${theme.gold}75` }}
+                      >
+                        The conversation chamber lies dormant.
+                        {entry.unlockFeatures?.conversation !== undefined && (
+                          <>
+                            {" "}
+                            Gather{" "}
+                            <span style={{ color: theme.gold }}>
+                              {Math.max(
+                                0,
+                                entry.unlockFeatures.conversation -
+                                  progress.collectedWords,
+                              )}
+                            </span>{" "}
+                            more spells to awaken it.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

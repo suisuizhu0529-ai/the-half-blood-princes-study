@@ -3,8 +3,10 @@ import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import type { LibraryCategoryMeta, LibraryEntry } from "@/types/library";
 import type { LearningProgress } from "@/utils/archiveUnlock";
+import { getFeatureUnlockStatus } from "@/utils/archiveUnlock";
+import { updateArchiveProgress } from "@/utils/archiveProgressStorage";
+import { useSpeech } from "@/hooks/useSpeech";
 import MemoryBook from "./MemoryBook";
-import ProfessorInteraction from "./ProfessorInteraction";
 
 interface MemoryChamberOverlayProps {
   /** 当前召唤的书（分类元信息） */
@@ -25,29 +27,18 @@ interface MemoryChamberOverlayProps {
  * MemoryChamberOverlay —— Phase 20.2 记忆室召唤覆盖层。
  *
  * 当用户点击焦点书时，书通过 layoutId 飞出书架、移到屏幕中心并放大展开，
- * 显示该分类的 MemoryBook（翻页式书内内容）+ ProfessorInteraction（教授互动区域）。
+ * 显示该分类的 MemoryBook（翻页式书内内容）。
  *
- * Phase 20.2 修复：
- *   - 恢复教授互动区域（Image/Content/Listen/Conversation 四区）
- *   - ProfessorInteraction 作为独立区域，跟随 MemoryBook 翻页同步切换
- *   - pageIndex/direction 状态提升到本组件，MemoryBook 改为受控
- *
- * Phase 20.2 修复 v2：
- *   - 点击空白处关闭：用独立背景层接收点击，避免内层 stopPropagation 阻挡
- *   - 魔杖翻页：订阅 MAGIC_SWEEP，根据轨迹 x 方向判断左/右翻页
- *   - 魔杖关闭：订阅 MAGIC_DISMISS，快速横向挥动关闭 Chamber
- *
- * Phase 20.2 修复 v3：
- *   - 移除 MAGIC_SWEEP / MAGIC_DISMISS 订阅（纯挥动易误触）
- *   - 改为 mousedown + 横向拖动 ≥ 阈值 才翻页（按住拖动模式）
- *   - 支持连续翻页（拖动距离每超过 repeatInterval 触发一次）
- *   - 关闭保留：X 按钮 / ESC / 点击背景
+ * Phase 20.2.2：
+ *   - 删除 ProfessorInteraction 渲染（书外夹页）
+ *   - Listen / Conversation 逻辑提升到本组件，UI 移入 MemoryPage
+ *   - 保持原有 useSpeech / archiveProgress 逻辑不变，仅改变 UI 位置
+ *   - ProfessorInteraction 文件保留，作为未来 Conversation 模式组件
  *
  * 结构：
  *   MemoryChamberOverlay
- *    ├ MemoryBook（翻页式书内内容）
- *    ├ ProfessorInteraction（教授互动独立区域）
- *    └ ArchiveViewer（保留，由 Library.tsx 管理）
+ *    └ MemoryBook
+ *        └ MemoryPage（含 Listen / Conversation 书页内印记）
  *
  * 关闭：
  *   - 点击 X 按钮 / ESC / 点击背景
@@ -63,8 +54,7 @@ export default function MemoryChamberOverlay({
 }: MemoryChamberOverlayProps) {
   const theme = category.colorTheme;
 
-  // Phase 20.2 修复：pageIndex/direction 提升到本组件，
-  // 让 ProfessorInteraction 跟随 MemoryBook 翻页同步切换 entry
+  // pageIndex/direction 提升到本组件，让翻页交互与 MemoryBook 受控同步
   const [pageIndex, setPageIndex] = useState(0);
   const [direction, setDirection] = useState(0);
 
@@ -78,8 +68,52 @@ export default function MemoryChamberOverlay({
     [],
   );
 
-  // 当前页对应的 entry（传给 ProfessorInteraction）
+  // 当前页对应的 entry
   const currentEntry = entries[pageIndex];
+
+  // === Phase 20.2.2：从 ProfessorInteraction 提升的逻辑 ===
+  // 保持原有 useSpeech + archiveProgress 写入逻辑不变，仅改变 UI 位置。
+  const { speaking, supported: audioSupported, speak, stop } = useSpeech();
+
+  // 进入即写入 discovered + lastVisitedAt（useRef 防 StrictMode 双调用）
+  const enteredRef = useRef(false);
+  useEffect(() => {
+    if (enteredRef.current) return;
+    enteredRef.current = true;
+    updateArchiveProgress(currentEntry.id, { discovered: true });
+  }, [currentEntry.id]);
+
+  // content 进入即视为已读（保留原 ProfessorInteraction 行为）
+  const currentFeatureStatus = getFeatureUnlockStatus(currentEntry, progress);
+  useEffect(() => {
+    if (currentFeatureStatus.content && currentEntry.content) {
+      updateArchiveProgress(currentEntry.id, { contentRead: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentEntry.id]);
+
+  // image 占位时（src 留空）视为已查看（保留原 ProfessorInteraction 行为）
+  useEffect(() => {
+    if (
+      currentFeatureStatus.image &&
+      currentEntry.image &&
+      !currentEntry.image.src
+    ) {
+      updateArchiveProgress(currentEntry.id, { imageViewed: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentEntry.id]);
+
+  // Listen：保持原有 handleListen 逻辑（speak/stop + 写入 audioPlayed）
+  const handleListen = useCallback(() => {
+    if (speaking) {
+      stop();
+      return;
+    }
+    if (!currentEntry.audio?.voiceText) return;
+    speak({ text: currentEntry.audio.voiceText });
+    updateArchiveProgress(currentEntry.id, { audioPlayed: true });
+  }, [speaking, speak, stop, currentEntry.id, currentEntry.audio]);
 
   // Phase 20.2 修复 v4：按住拖动翻页，每次按下只翻一页
   //   - mousedown：记录起点 + triggered=false
@@ -180,10 +214,11 @@ export default function MemoryChamberOverlay({
         <X size={20} strokeWidth={1.5} />
       </button>
 
-      {/* 召唤出的书（layoutId 飞出 + 放大 + 打开 MemoryBook + ProfessorInteraction）
-          Phase 20.2.1：
-          - MemoryBook 作为主体（双页真实比例）
-          - ProfessorInteraction 作为书外"夹页"（独立羊皮纸条），不进入书框
+      {/* 召唤出的书（layoutId 飞出 + 放大 + 打开 MemoryBook）
+          Phase 20.2.2：
+          - 仅 MemoryBook 作为主体（双页真实比例）
+          - ProfessorInteraction 不再渲染（书外夹页已删除）
+          - Listen / Conversation UI 已移入 MemoryPage，逻辑由本组件提升管理
           - items-start + my-12，内容超出视口时可滚动，
             不超出时通过 my-12 在视觉上接近居中，书周围留空白可点击关闭 */}
       <motion.div
@@ -197,8 +232,7 @@ export default function MemoryChamberOverlay({
           perspective: "1800px",
         }}
       >
-        {/* === 书本外框：皮革质感（呼应书架上的书） ===
-            Phase 20.2.1：仅包裹 MemoryBook，不再塞入 ProfessorInteraction */}
+        {/* === 书本外框：皮革质感（呼应书架上的书） === */}
         <motion.div
           className="relative rounded-md p-1.5"
           style={{
@@ -210,7 +244,8 @@ export default function MemoryChamberOverlay({
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          {/* MemoryBook：立体魔法书双页（受控） */}
+          {/* MemoryBook：立体魔法书双页（受控）
+              Phase 20.2.2：speaking/audioSupported/onListen 透传到 MemoryPage */}
           <MemoryBook
             category={category}
             entries={entries}
@@ -220,29 +255,11 @@ export default function MemoryChamberOverlay({
             direction={direction}
             onPageChange={handlePageChange}
             onOpenArchive={onOpenArchive}
+            speaking={speaking}
+            audioSupported={audioSupported}
+            onListen={handleListen}
           />
         </motion.div>
-
-        {/* === ProfessorInteraction：书外夹页 ===
-            Phase 20.2.1：作为独立羊皮纸条悬浮于书下方，
-            不进入书框，避免破坏书页比例。
-            限制最大高度 + 内部滚动，长内容不撑坏整体布局。
-            宽度对齐书页（单页宽度 ≈ 整书 1/2） */}
-        <div
-          className="parchment-surface mt-6 w-full max-w-[440px] rounded-sm px-8 py-6"
-          style={{
-            boxShadow:
-              "0 12px 30px rgba(0,0,0,0.55), inset 0 0 50px rgba(120,90,40,0.10)",
-            maxHeight: "38vh",
-            overflowY: "auto",
-          }}
-        >
-          <ProfessorInteraction
-            entry={currentEntry}
-            progress={progress}
-            onImageView={onOpenArchive}
-          />
-        </div>
 
         {/* 底部巨大投影（书悬浮于空间中） */}
         <div

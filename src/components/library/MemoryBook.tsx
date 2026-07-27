@@ -3,7 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { LibraryEntry, LibraryCategoryMeta } from "@/types/library";
 import type { LearningProgress } from "@/utils/archiveUnlock";
-import { getUnlockStatus } from "@/utils/archiveUnlock";
+import { getUnlockStatus, getFeatureUnlockStatus } from "@/utils/archiveUnlock";
 import MemoryPage from "./MemoryPage";
 
 interface MemoryBookProps {
@@ -15,7 +15,7 @@ interface MemoryBookProps {
   progress: LearningProgress;
   /** 已查看的 entryId 列表 */
   viewedIds: string[];
-  /** 当前页索引（受控，由 MemoryChamberOverlay 持有以便同步 ProfessorInteraction） */
+  /** 当前页索引（受控，由 MemoryChamberOverlay 持有以便同步翻页） */
   pageIndex: number;
   /** 翻页方向（受控，用于 AnimatePresence 翻页动画方向） */
   direction: number;
@@ -23,6 +23,12 @@ interface MemoryBookProps {
   onPageChange: (index: number, direction: number) => void;
   /** 点击 unlocked entry → 打开 ArchiveViewer */
   onOpenArchive: (entry: LibraryEntry) => void;
+  /** Phase 20.2.2：TTS 是否正在播放 */
+  speaking: boolean;
+  /** Phase 20.2.2：TTS 是否可用 */
+  audioSupported: boolean;
+  /** Phase 20.2.2：点击 Listen 触发（speak/stop 由上层处理） */
+  onListen: () => void;
 }
 
 /**
@@ -52,12 +58,17 @@ export default function MemoryBook({
   direction,
   onPageChange,
   onOpenArchive,
+  speaking,
+  audioSupported,
+  onListen,
 }: MemoryBookProps) {
   const theme = category.colorTheme;
   const total = entries.length;
   const currentEntry = entries[pageIndex];
   const currentStatus = getUnlockStatus(currentEntry, progress);
   const isViewed = viewedIds.includes(currentEntry.id);
+  // Phase 20.2.2：当前 entry 内部特性解锁状态（透传给 MemoryPage）
+  const currentFeatureStatus = getFeatureUnlockStatus(currentEntry, progress);
 
   const goToPage = useCallback(
     (next: number) => {
@@ -206,6 +217,11 @@ export default function MemoryBook({
               viewed={isViewed}
               theme={theme}
               onOpenArchive={onOpenArchive}
+              progress={progress}
+              featureStatus={currentFeatureStatus}
+              speaking={speaking}
+              audioSupported={audioSupported}
+              onListen={onListen}
             />
           </AnimatePresence>
         </div>
