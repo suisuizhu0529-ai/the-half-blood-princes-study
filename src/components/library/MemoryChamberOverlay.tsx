@@ -83,6 +83,20 @@ export default function MemoryChamberOverlay({
     updateArchiveProgress(currentEntry.id, { discovered: true });
   }, [currentEntry.id]);
 
+  // Phase 20.2.4-A：翻页时停止语音
+  //   - 避免 UI state（currentEntry）与 media state（audio）脱钩
+  //     —— 否则翻页后 speaking 仍 true，但字幕显示新页 voiceText
+  //   - 所有翻页路径（按钮、拖动、底部圆点）均经 setPageIndex，统一在此拦截
+  //   - 首次 mount（pageIndex 初始 0）跳过，不误触
+  const firstPageRef = useRef(true);
+  useEffect(() => {
+    if (firstPageRef.current) {
+      firstPageRef.current = false;
+      return;
+    }
+    stop();
+  }, [pageIndex, stop]);
+
   // content 进入即视为已读（保留原 ProfessorInteraction 行为）
   const currentFeatureStatus = getFeatureUnlockStatus(currentEntry, progress);
   useEffect(() => {
